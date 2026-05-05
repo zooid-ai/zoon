@@ -1,6 +1,8 @@
+import "@/index.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App, type AppConfig } from "./app";
+import { ThemeProvider } from "@/components/theme-provider";
 import { discoverHomeserver } from "./client/homeserver-discovery";
 import { loadRuntimeConfig } from "./client/runtime-config";
 
@@ -24,7 +26,9 @@ async function bootstrap() {
   }
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <App config={config} />
+      <ThemeProvider defaultTheme="system">
+        <App config={config} />
+      </ThemeProvider>
     </StrictMode>,
   );
 }
