@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { RoomMember } from "matrix-js-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeFakeClient, makeRoom } from "../../../test/factories";
 import { MatrixClientPeg } from "../../client/peg";
@@ -73,10 +74,12 @@ describe("<Composer />", () => {
     it("ArrowDown does not snap activeIdx back to 0", async () => {
       const client = makeFakeClient({ userId: me });
       const room = makeRoom(roomId, { client, myUserId: me });
-      (room as unknown as { getJoinedMembers: () => unknown[] }).getJoinedMembers = () => [
-        { userId: "@alice:h.example", name: "alice" },
-        { userId: "@bob:h.example", name: "bob" },
-      ];
+      const aliceMember = new RoomMember(roomId, "@alice:h.example");
+      aliceMember.name = "alice";
+      const bobMember = new RoomMember(roomId, "@bob:h.example");
+      bobMember.name = "bob";
+      const roomMembers = [aliceMember, bobMember];
+      (room as unknown as { getJoinedMembers: () => RoomMember[] }).getJoinedMembers = () => roomMembers;
       (client as unknown as { getRoom: () => unknown }).getRoom = () => room;
       (client as unknown as { sendEvent: unknown }).sendEvent = vi.fn().mockResolvedValue({ event_id: "$m1" });
       MatrixClientPeg.injectClientForTest(client);

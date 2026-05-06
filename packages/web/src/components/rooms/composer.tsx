@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { displayNameOf, senderColor } from "@/lib/sender";
 import { listSlashCommands, parseSlashCommand, type SlashCommandMeta } from "@/lib/slash-commands";
 import { useMatrixClient } from "../../hooks/use-matrix-client";
+import { useMembers } from "../../hooks/use-members";
 
 const TEXTAREA_CLS =
   "flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40";
@@ -32,13 +33,11 @@ export function Composer({ roomId }: { roomId: string }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const members = useMemo<Member[]>(() => {
-    const room = client.getRoom(roomId);
-    if (!room) return [];
-    return room
-      .getJoinedMembers()
-      .map((m) => ({ userId: m.userId, name: m.name || displayNameOf(m.userId) }));
-  }, [client, roomId]);
+  const rawMembers = useMembers(roomId);
+  const members = useMemo<Member[]>(
+    () => rawMembers.map((m) => ({ userId: m.userId, name: m.name || displayNameOf(m.userId) })),
+    [rawMembers],
+  );
 
   const mentionMatches = useMemo(() => {
     if (!ac || ac.mode !== "mention") return [];
