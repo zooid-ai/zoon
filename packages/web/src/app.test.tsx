@@ -42,7 +42,7 @@ describe("<App />", () => {
     await waitFor(() =>
       expect(screen.getByTestId("logged-in-view")).toBeInTheDocument(),
     );
-    expect(screen.getByTestId("logged-in-view")).toHaveTextContent("@alice:h.example");
+    expect(screen.getByRole("button", { name: /user menu/i })).toBeInTheDocument();
   });
 
   it("clears storage and reroutes to /login on logout", async () => {

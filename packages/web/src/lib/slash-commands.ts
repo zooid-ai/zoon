@@ -1,33 +1,27 @@
-/**
- * Slash command registry. Each entry maps user-typed `/<name>` (with optional
- * arguments) to a custom matrix event type + content shape. Send via the
- * 4-arg `client.sendEvent(roomId, null, type, content)` overload.
- */
-
 export interface ParsedSlashCommand {
-  /** Custom matrix event type, e.g. "eco.zoon.session_reset". */
   eventType: string;
-  /** Event content payload. */
   content: Record<string, unknown>;
+}
+
+export interface SlashCommandMeta {
+  name: string;
+  description: string;
 }
 
 interface SlashCommandSpec {
   names: string[];
+  description: string;
   build: (args: string) => ParsedSlashCommand;
 }
 
 const COMMANDS: SlashCommandSpec[] = [
   {
     names: ["clear", "new"],
+    description: "Start a new session for all agents in this channel",
     build: () => ({ eventType: "eco.zoon.session_reset", content: {} }),
   },
 ];
 
-/**
- * Returns the parsed command if `body` starts with a slash and matches a
- * registered command. `null` for plain messages or unknown slashes — those
- * still flow through as a regular m.room.message so users see "what they typed."
- */
 export function parseSlashCommand(body: string): ParsedSlashCommand | null {
   if (!body.startsWith("/")) return null;
   const space = body.indexOf(" ");
@@ -37,4 +31,10 @@ export function parseSlashCommand(body: string): ParsedSlashCommand | null {
     if (spec.names.includes(name)) return spec.build(args);
   }
   return null;
+}
+
+export function listSlashCommands(): SlashCommandMeta[] {
+  return COMMANDS.flatMap((c) =>
+    c.names.map((name) => ({ name, description: c.description })),
+  );
 }

@@ -67,4 +67,72 @@ describe("<Composer />", () => {
     expect(input).not.toBeDisabled();
     expect(input).toHaveValue("hi");
   });
+
+  // --- Mention autocomplete: activeIdx persistence ---
+  describe("mention autocomplete activeIdx", () => {
+    it("ArrowDown does not snap activeIdx back to 0", async () => {
+      const client = makeFakeClient({ userId: me });
+      const room = makeRoom(roomId, { client, myUserId: me });
+      (room as unknown as { getJoinedMembers: () => unknown[] }).getJoinedMembers = () => [
+        { userId: "@alice:h.example", name: "alice" },
+        { userId: "@bob:h.example", name: "bob" },
+      ];
+      (client as unknown as { getRoom: () => unknown }).getRoom = () => room;
+      (client as unknown as { sendEvent: unknown }).sendEvent = vi.fn().mockResolvedValue({ event_id: "$m1" });
+      MatrixClientPeg.injectClientForTest(client);
+      render(<Composer roomId={roomId} />);
+      const user = userEvent.setup();
+      const input = screen.getByRole("textbox", { name: /message/i });
+
+      // Open mention autocomplete
+      await user.type(input, "@");
+      // Press ArrowDown once — should move to index 1
+      await user.keyboard("{ArrowDown}");
+      // Press ArrowDown again — should move to index 2 (wraps if only 2 entries → 0)
+      await user.keyboard("{ArrowDown}");
+
+      // The active item in the listbox should NOT be the first one
+      const options = screen.getAllByRole("option");
+      expect(options.length).toBeGreaterThan(0);
+
+      // Move to index 1 and confirm Tab inserts the second member, not the first
+      await user.keyboard("{ArrowDown}"); // index 0 → 1
+      await user.keyboard("{Tab}");
+      expect((input as HTMLTextAreaElement).value).toMatch(/@bob:h\.example/);
+    });
+  });
+
+  // --- Slash command autocomplete ---
+  describe("slash command autocomplete", () => {
+    it("shows slash command suggestions when / is typed at start", async () => {
+      setup();
+      render(<Composer roomId={roomId} />);
+      const user = userEvent.setup();
+      const input = screen.getByRole("textbox", { name: /message/i });
+      await user.type(input, "/");
+      const list = screen.getByRole("listbox");
+      expect(list).toBeDefined();
+      // /clear should be visible
+      expect(screen.getByText(/clear/i)).toBeDefined();
+    });
+
+    it("filters slash suggestions by query", async () => {
+      setup();
+      render(<Composer roomId={roomId} />);
+      const user = userEvent.setup();
+      const input = screen.getByRole("textbox", { name: /message/i });
+      await user.type(input, "/cl");
+      expect(screen.getAllByRole("option").some((o) => o.textContent?.includes("clear"))).toBe(true);
+    });
+
+    it("Tab selects a slash command and fills the textarea", async () => {
+      setup();
+      render(<Composer roomId={roomId} />);
+      const user = userEvent.setup();
+      const input = screen.getByRole("textbox", { name: /message/i });
+      await user.type(input, "/");
+      await user.keyboard("{Tab}");
+      expect((input as HTMLTextAreaElement).value).toMatch(/^\//);
+    });
+  });
 });

@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { displayNameOf, senderColor } from "@/lib/sender";
-import { parseSlashCommand } from "@/lib/slash-commands";
+import { listSlashCommands, parseSlashCommand, type SlashCommandMeta } from "@/lib/slash-commands";
 import { useMatrixClient } from "../../hooks/use-matrix-client";
 
 const TEXTAREA_CLS =
@@ -12,12 +12,17 @@ interface Member {
   name: string;
 }
 
+type AcMode = "mention" | "slash";
+
 interface AutocompleteState {
+  mode: AcMode;
   start: number;
   query: string;
 }
 
 const USER_ID_IN_BODY = /@[A-Za-z0-9._\-=/+]+:[A-Za-z0-9.\-]+/g;
+
+const ALL_SLASH_COMMANDS = listSlashCommands();
 
 export function Composer({ roomId }: { roomId: string }) {
   const client = useMatrixClient();
@@ -35,8 +40,8 @@ export function Composer({ roomId }: { roomId: string }) {
       .map((m) => ({ userId: m.userId, name: m.name || displayNameOf(m.userId) }));
   }, [client, roomId]);
 
-  const matches = useMemo(() => {
-    if (!ac) return [];
+  const mentionMatches = useMemo(() => {
+    if (!ac || ac.mode !== "mention") return [];
     const q = ac.query.toLowerCase();
     return members
       .filter(
@@ -48,18 +53,43 @@ export function Composer({ roomId }: { roomId: string }) {
       .slice(0, 8);
   }, [ac, members]);
 
+  const slashMatches = useMemo<SlashCommandMeta[]>(() => {
+    if (!ac || ac.mode !== "slash") return [];
+    const q = ac.query.toLowerCase();
+    if (!q) return ALL_SLASH_COMMANDS;
+    return ALL_SLASH_COMMANDS.filter(
+      (c) => c.name.startsWith(q) || c.description.toLowerCase().includes(q),
+    );
+  }, [ac]);
+
+  const matches = ac?.mode === "slash" ? slashMatches : mentionMatches;
+
   function detectAutocomplete(text: string, cursor: number) {
-    // Walk back from the cursor for an unclosed `@<query>` token.
+    // Slash command: only triggered at position 0
+    if (text.startsWith("/") && cursor > 0 && !text.includes(" ")) {
+      const query = text.slice(1, cursor);
+      setAc((prev) => {
+        if (prev?.mode === "slash" && prev.query === query) return prev;
+        if (prev?.mode !== "slash" || prev.query !== query) setActiveIdx(0);
+        return { mode: "slash", start: 0, query };
+      });
+      return;
+    }
+
+    // Mention: walk back from cursor for unclosed `@<query>` token
     let i = cursor - 1;
     while (i >= 0) {
       const ch = text[i];
       if (ch === "@") {
         if (i === 0 || /\s/.test(text[i - 1])) {
           const query = text.slice(i + 1, cursor);
-          // Don't trigger inside a fully-formed user ID (`@a:b`) or with spaces.
           if (!/\s/.test(query) && !query.includes(":")) {
-            setAc({ start: i, query });
-            setActiveIdx(0);
+            setAc((prev) => {
+              // Only reset activeIdx when the query actually changes
+              if (prev?.mode === "mention" && prev.start === i && prev.query === query) return prev;
+              setActiveIdx(0);
+              return { mode: "mention", start: i, query };
+            });
             return;
           }
         }
@@ -79,7 +109,6 @@ export function Composer({ roomId }: { roomId: string }) {
     const next = before + insert + after;
     setValue(next);
     setAc(null);
-    // Restore caret to just after the inserted mention.
     requestAnimationFrame(() => {
       const ta = textareaRef.current;
       if (!ta) return;
@@ -89,16 +118,22 @@ export function Composer({ roomId }: { roomId: string }) {
     });
   }
 
+  function selectSlash(cmd: SlashCommandMeta) {
+    const next = `/${cmd.name} `;
+    setValue(next);
+    setAc(null);
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.setSelectionRange(next.length, next.length);
+    });
+  }
+
   async function send(): Promise<void> {
     const body = value.trim();
     if (!body) return;
     setError(null);
-    // Important: call client.sendEvent directly. Extracting it via
-    //   const f = client.sendEvent
-    // strips the `this` binding and the SDK throws inside its own
-    // `this.addThreadRelationIfNeeded(...)`. Cast inline so TS is happy with
-    // both the 3-arg (m.room.message) and 4-arg (custom event w/ explicit
-    // threadId) overloads.
     type SendEvent3 = (
       roomId: string,
       type: string,
@@ -154,7 +189,11 @@ export function Composer({ roomId }: { roomId: string }) {
       }
       if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
-        selectMember(matches[activeIdx]);
+        if (ac.mode === "slash") {
+          selectSlash(slashMatches[activeIdx] as SlashCommandMeta);
+        } else {
+          selectMember(mentionMatches[activeIdx] as Member);
+        }
         return;
       }
       if (e.key === "Escape") {
@@ -169,7 +208,7 @@ export function Composer({ roomId }: { roomId: string }) {
   };
 
   return (
-    <div className="relative shrink-0 border-t border-border p-3">
+    <div className="relative shrink-0 border-t border-border p-3 pt-0">
       {error && (
         <div role="alert" className="mb-2 text-sm text-destructive">
           {error}
@@ -178,34 +217,50 @@ export function Composer({ roomId }: { roomId: string }) {
       {ac && matches.length > 0 && (
         <ul
           role="listbox"
-          aria-label="Mention suggestions"
+          aria-label={ac.mode === "slash" ? "Command suggestions" : "Mention suggestions"}
           className="absolute bottom-full left-3 right-3 mb-1 max-h-56 overflow-auto rounded-md border border-border bg-popover p-1 shadow-lg"
         >
-          {matches.map((m, i) => (
-            <li
-              key={m.userId}
-              role="option"
-              aria-selected={i === activeIdx}
-              onMouseDown={(e) => {
-                // mousedown so the textarea doesn't blur before we update.
-                e.preventDefault();
-                selectMember(m);
-              }}
-              onMouseEnter={() => setActiveIdx(i)}
-              className={
-                "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-sm " +
-                (i === activeIdx ? "bg-accent text-accent-foreground" : "")
-              }
-            >
-              <span
-                className="font-semibold"
-                style={{ color: senderColor(m.userId) }}
-              >
-                {displayNameOf(m.userId)}
-              </span>
-              <span className="text-xs text-muted-foreground">{m.userId}</span>
-            </li>
-          ))}
+          {ac.mode === "slash"
+            ? slashMatches.map((cmd, i) => (
+                <li
+                  key={cmd.name}
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectSlash(cmd);
+                  }}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  className={
+                    "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-sm " +
+                    (i === activeIdx ? "bg-accent text-accent-foreground" : "")
+                  }
+                >
+                  <span className="font-mono font-semibold text-primary">/{cmd.name}</span>
+                  <span className="text-xs text-muted-foreground">{cmd.description}</span>
+                </li>
+              ))
+            : mentionMatches.map((m, i) => (
+                <li
+                  key={m.userId}
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectMember(m);
+                  }}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  className={
+                    "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-sm " +
+                    (i === activeIdx ? "bg-accent text-accent-foreground" : "")
+                  }
+                >
+                  <span className="font-semibold" style={{ color: senderColor(m.userId) }}>
+                    {displayNameOf(m.userId)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{m.userId}</span>
+                </li>
+              ))}
         </ul>
       )}
       <textarea
@@ -219,6 +274,10 @@ export function Composer({ roomId }: { roomId: string }) {
           detectAutocomplete(e.target.value, e.target.selectionStart);
         }}
         onKeyUp={(e) => {
+          // Don't re-run autocomplete on arrow keys when the list is open —
+          // onKeyDown already handled navigation; running detectAutocomplete
+          // here would reset activeIdx to 0.
+          if (ac && (e.key === "ArrowDown" || e.key === "ArrowUp")) return;
           if (e.key.startsWith("Arrow") || e.key === "Home" || e.key === "End") {
             const ta = e.currentTarget;
             detectAutocomplete(ta.value, ta.selectionStart);
