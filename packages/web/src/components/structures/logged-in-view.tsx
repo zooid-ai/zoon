@@ -84,6 +84,7 @@ function MemberRow({ userId }: { userId: string }) {
 export function LoggedInView() {
   const client = useMatrixClient();
   const userId = client.getUserId() ?? "";
+  const serverName = userId.split(":")[1] ?? userId;
 
   useEffect(() => {
     client.startClient({ initialSyncLimit: 10 }).catch(() => {});
@@ -92,10 +93,8 @@ export function LoggedInView() {
   return (
     <SidebarProvider className="h-svh overflow-hidden">
       <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <span className="px-2 text-xs uppercase tracking-wider text-sidebar-foreground/70">
-            Rooms
-          </span>
+        <SidebarHeader className="h-12 flex-row items-center border-b border-sidebar-border px-4">
+          <span className="text-sm font-medium truncate">{serverName}</span>
         </SidebarHeader>
         <SidebarContent>
           <LeftPanel />

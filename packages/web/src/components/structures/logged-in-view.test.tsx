@@ -27,14 +27,14 @@ describe("<LoggedInView /> sidebar polish", () => {
     localStorage.clear();
   });
 
-  it("renders a room sidebar with a 'Rooms' header", async () => {
+  it("renders a sidebar whose header shows the homeserver name", async () => {
     render(<App config={{ homeserverUrl: HS }} />);
     await waitFor(() =>
       expect(screen.getByTestId("logged-in-view")).toBeInTheDocument(),
     );
     expect(document.querySelector('[data-slot="sidebar"]')).not.toBeNull();
-    // Header text is rendered inside SidebarHeader.
-    expect(screen.getByText(/^rooms$/i)).toBeInTheDocument();
+    // Header shows the server part of the logged-in user's Matrix ID.
+    expect(screen.getByText("h.example")).toBeInTheDocument();
   });
 
   it("toggles the sidebar with Cmd-B / Ctrl-B", async () => {

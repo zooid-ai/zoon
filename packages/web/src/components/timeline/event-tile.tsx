@@ -5,8 +5,15 @@ import { ApprovalCard } from "./approval-card";
 import { EcoZoonEventTile } from "./eco-zoon-event";
 import { TextMessage } from "./text-message";
 
-export function EventTile({ event }: { event: MatrixEvent }) {
-  if (event.getType() === "m.room.message") return <TextMessage event={event} />;
+export function EventTile({
+  event,
+  onReplyInThread,
+}: {
+  event: MatrixEvent;
+  onReplyInThread?: (eventId: string) => void;
+}) {
+  if (event.getType() === "m.room.message")
+    return <TextMessage event={event} onReplyInThread={onReplyInThread} />;
   if (event.getType() === ApprovalEventType.Request) return <ApprovalCard event={event} />;
   // Approval *responses* are not rendered as their own tile — they only matter
   // as input to <ApprovalCard /> resolution. Skip silently.

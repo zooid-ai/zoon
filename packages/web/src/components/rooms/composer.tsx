@@ -27,9 +27,13 @@ interface AutocompleteState {
 
 const USER_ID_IN_BODY = /@[A-Za-z0-9._\-=/+]+:[A-Za-z0-9.\-]+/g;
 
-const ALL_SLASH_COMMANDS = listSlashCommands();
+export interface ComposerProps {
+  roomId: string;
+  threadRootEventId?: string | null;
+  onExitThread?: () => void;
+}
 
-export function Composer({ roomId }: { roomId: string }) {
+export function Composer({ roomId, threadRootEventId, onExitThread }: ComposerProps) {
   const client = useMatrixClient();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +41,18 @@ export function Composer({ roomId }: { roomId: string }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const threadScoped = Boolean(threadRootEventId);
+  const threadId = threadRootEventId ?? null;
+
   const rawMembers = useMembers(roomId);
   const members = useMemo<Member[]>(
     () => rawMembers.map((m) => ({ userId: m.userId, name: m.name || displayNameOf(m.userId) })),
     [rawMembers],
+  );
+
+  const slashCommands = useMemo(
+    () => listSlashCommands({ threadScoped }),
+    [threadScoped],
   );
 
   const mentionMatches = useMemo(() => {
@@ -59,11 +71,11 @@ export function Composer({ roomId }: { roomId: string }) {
   const slashMatches = useMemo<SlashCommandMeta[]>(() => {
     if (!ac || ac.mode !== "slash") return [];
     const q = ac.query.toLowerCase();
-    if (!q) return ALL_SLASH_COMMANDS;
-    return ALL_SLASH_COMMANDS.filter(
+    if (!q) return slashCommands;
+    return slashCommands.filter(
       (c) => c.name.startsWith(q) || c.description.toLowerCase().includes(q),
     );
-  }, [ac]);
+  }, [ac, slashCommands]);
 
   const matches = ac?.mode === "slash" ? slashMatches : mentionMatches;
 
@@ -88,7 +100,6 @@ export function Composer({ roomId }: { roomId: string }) {
           const query = text.slice(i + 1, cursor);
           if (!/\s/.test(query) && !query.includes(":")) {
             setAc((prev) => {
-              // Only reset activeIdx when the query actually changes
               if (prev?.mode === "mention" && prev.start === i && prev.query === query) return prev;
               setActiveIdx(0);
               return { mode: "mention", start: i, query };
@@ -133,28 +144,24 @@ export function Composer({ roomId }: { roomId: string }) {
     });
   }
 
+  type SendEvent = (
+    roomId: string,
+    threadId: string | null,
+    type: string,
+    content: Record<string, unknown>,
+  ) => Promise<{ event_id: string }>;
+
   async function send(): Promise<void> {
     const body = value.trim();
     if (!body) return;
     setError(null);
-    type SendEvent3 = (
-      roomId: string,
-      type: string,
-      content: Record<string, unknown>,
-    ) => Promise<{ event_id: string }>;
-    type SendEvent4 = (
-      roomId: string,
-      threadId: string | null,
-      type: string,
-      content: Record<string, unknown>,
-    ) => Promise<{ event_id: string }>;
     try {
-      const slash = parseSlashCommand(body);
+      const slash = parseSlashCommand(body, { threadScoped });
       if (slash) {
-        await (client.sendEvent as unknown as SendEvent4).call(
+        await (client.sendEvent as unknown as SendEvent).call(
           client,
           roomId,
-          null,
+          threadId,
           slash.eventType,
           slash.content,
         );
@@ -166,9 +173,10 @@ export function Composer({ roomId }: { roomId: string }) {
       if (mentionUserIds.length > 0) {
         content["m.mentions"] = { user_ids: mentionUserIds };
       }
-      await (client.sendEvent as unknown as SendEvent3).call(
+      await (client.sendEvent as unknown as SendEvent).call(
         client,
         roomId,
+        threadId,
         "m.room.message",
         content,
       );
@@ -193,7 +201,14 @@ export function Composer({ roomId }: { roomId: string }) {
       if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
         if (ac.mode === "slash") {
-          selectSlash(slashMatches[activeIdx] as SlashCommandMeta);
+          const activeCmd = slashMatches[activeIdx] as SlashCommandMeta | undefined;
+          // If the user typed the full command and pressed Enter, send immediately.
+          if (activeCmd && e.key === "Enter" && value.trim() === `/${activeCmd.name}`) {
+            setAc(null);
+            await send();
+          } else {
+            selectSlash(activeCmd as SlashCommandMeta);
+          }
         } else {
           selectMember(mentionMatches[activeIdx] as Member);
         }
@@ -215,6 +230,19 @@ export function Composer({ roomId }: { roomId: string }) {
       {error && (
         <div role="alert" className="mb-2 text-sm text-destructive">
           {error}
+        </div>
+      )}
+      {threadRootEventId && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <span>Replying in thread</span>
+          <button
+            type="button"
+            aria-label="Exit thread"
+            onClick={() => onExitThread?.()}
+            className="rounded px-2 py-1 hover:bg-muted"
+          >
+            Cancel
+          </button>
         </div>
       )}
       {ac && matches.length > 0 && (
@@ -278,9 +306,6 @@ export function Composer({ roomId }: { roomId: string }) {
             detectAutocomplete(e.target.value, e.target.selectionStart);
           }}
           onKeyUp={(e) => {
-            // Don't re-run autocomplete on arrow keys when the list is open —
-            // onKeyDown already handled navigation; running detectAutocomplete
-            // here would reset activeIdx to 0.
             if (ac && (e.key === "ArrowDown" || e.key === "ArrowUp")) return;
             if (e.key.startsWith("Arrow") || e.key === "Home" || e.key === "End") {
               const ta = e.currentTarget;

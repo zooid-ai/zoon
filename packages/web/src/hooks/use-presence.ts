@@ -36,7 +36,7 @@ export function usePresence(userId: string): PresenceState {
 
     // Also listen at the client level: the SDK re-emits UserEvent.Presence for
     // all users (including ones whose User object didn't exist on mount).
-    const clientUpdate = (_event: MatrixEvent | null, presenceUser: User) => {
+    const clientUpdate = (_event: MatrixEvent | null | undefined, presenceUser: User) => {
       if (presenceUser.userId === userId) update();
     };
     client.on(UserEvent.Presence, clientUpdate);

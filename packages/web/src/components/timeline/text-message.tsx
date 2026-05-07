@@ -8,17 +8,27 @@ function AvatarWithPresence({ userId }: { userId: string }) {
   return <UserAvatar userId={userId} size="sm" presence={presence} />;
 }
 
-export function TextMessage({ event }: { event: MatrixEvent }) {
+export interface TextMessageProps {
+  event: MatrixEvent;
+  onReplyInThread?: (eventId: string) => void;
+  onViewThread?: (eventId: string) => void;
+}
+
+export function TextMessage({ event, onReplyInThread, onViewThread }: TextMessageProps) {
   const c = event.getContent() as { msgtype?: string; body?: string };
   if (c.msgtype !== "m.text" && c.msgtype !== "m.notice") return null;
   const sender = event.getSender() ?? "?";
   const body = c.body ?? "";
+  const eventId = event.getId() ?? "";
+  const thread = (event as unknown as { getThread?: () => { length: number } | null }).getThread?.();
+  const replyCount = thread?.length ?? 0;
+
   return (
     <div className="group flex gap-2 py-1.5 hover:bg-muted/30">
       <div className="mt-0.5 shrink-0">
         <AvatarWithPresence userId={sender} />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <span
           className="font-semibold text-sm leading-6"
           style={{ color: senderColor(sender) }}
@@ -42,6 +52,31 @@ export function TextMessage({ event }: { event: MatrixEvent }) {
             ),
           )}
         </p>
+        {replyCount > 0 && (
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs text-muted-foreground">
+              {replyCount} {replyCount === 1 ? "reply" : "replies"}
+            </span>
+            <button
+              type="button"
+              aria-label="View thread"
+              onClick={() => onViewThread?.(eventId)}
+              className="text-xs text-primary hover:underline"
+            >
+              View thread
+            </button>
+          </div>
+        )}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
+          <button
+            type="button"
+            aria-label="Reply in thread"
+            onClick={() => onReplyInThread?.(eventId)}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Reply in thread
+          </button>
+        </div>
       </div>
     </div>
   );

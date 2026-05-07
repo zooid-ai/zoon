@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 import { useTimeline } from "../../hooks/use-timeline";
 import { MessagePanel } from "./message-panel";
 
-export function TimelinePanel({ roomId }: { roomId: string }) {
+export function TimelinePanel({
+  roomId,
+  onReplyInThread,
+}: {
+  roomId: string;
+  onReplyInThread?: (eventId: string) => void;
+}) {
   const { events } = useTimeline(roomId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
@@ -21,7 +27,7 @@ export function TimelinePanel({ roomId }: { roomId: string }) {
 
   return (
     <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto">
-      <MessagePanel events={events} />
+      <MessagePanel events={events} onReplyInThread={onReplyInThread} />
     </div>
   );
 }

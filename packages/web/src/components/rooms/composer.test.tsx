@@ -24,17 +24,19 @@ afterEach(() => {
 });
 
 describe("<Composer />", () => {
-  it("sends m.room.message on Enter", async () => {
+  it("sends m.room.message at room scope when no thread is set", async () => {
     const { send } = setup();
     render(<Composer roomId={roomId} />);
     const user = userEvent.setup();
     const input = screen.getByRole("textbox", { name: /message/i });
     await user.type(input, "hello world{Enter}");
     await waitFor(() =>
-      expect(send).toHaveBeenCalledWith(roomId, "m.room.message", {
-        msgtype: "m.text",
-        body: "hello world",
-      }),
+      expect(send).toHaveBeenCalledWith(
+        roomId,
+        null,                              // room mode → no thread
+        "m.room.message",
+        { msgtype: "m.text", body: "hello world" },
+      ),
     );
     expect(input).toHaveValue("");
   });
@@ -107,35 +109,103 @@ describe("<Composer />", () => {
 
   // --- Slash command autocomplete ---
   describe("slash command autocomplete", () => {
-    it("shows slash command suggestions when / is typed at start", async () => {
+    it("does not show /clear in room mode when / is typed", async () => {
       setup();
       render(<Composer roomId={roomId} />);
       const user = userEvent.setup();
       const input = screen.getByRole("textbox", { name: /message/i });
       await user.type(input, "/");
-      const list = screen.getByRole("listbox");
-      expect(list).toBeDefined();
-      // /clear should be visible
-      expect(screen.getByText(/clear/i)).toBeDefined();
+      // In room mode there are no slash commands — no listbox appears
+      expect(screen.queryByRole("listbox")).toBeNull();
     });
+  });
+});
 
-    it("filters slash suggestions by query", async () => {
-      setup();
-      render(<Composer roomId={roomId} />);
-      const user = userEvent.setup();
-      const input = screen.getByRole("textbox", { name: /message/i });
-      await user.type(input, "/cl");
-      expect(screen.getAllByRole("option").some((o) => o.textContent?.includes("clear"))).toBe(true);
-    });
+describe("<Composer /> thread mode", () => {
+  it("sends with the thread root when threadRootEventId prop is set", async () => {
+    const { send } = setup();
+    render(<Composer roomId={roomId} threadRootEventId="$root" />);
+    const user = userEvent.setup();
+    const input = screen.getByRole("textbox", { name: /message/i });
+    await user.type(input, "in-thread{Enter}");
+    await waitFor(() =>
+      expect(send).toHaveBeenCalledWith(
+        roomId,
+        "$root",                                // thread mode → root id
+        "m.room.message",
+        { msgtype: "m.text", body: "in-thread" },
+      ),
+    );
+  });
 
-    it("Tab selects a slash command and fills the textarea", async () => {
-      setup();
-      render(<Composer roomId={roomId} />);
-      const user = userEvent.setup();
-      const input = screen.getByRole("textbox", { name: /message/i });
-      await user.type(input, "/");
-      await user.keyboard("{Tab}");
-      expect((input as HTMLTextAreaElement).value).toMatch(/^\//);
-    });
+  it("renders a 'replying in thread' chrome with an exit affordance", async () => {
+    setup();
+    render(<Composer roomId={roomId} threadRootEventId="$root" onExitThread={vi.fn()} />);
+    expect(screen.getByText(/replying in thread/i)).toBeDefined();
+    expect(screen.getByRole("button", { name: /exit thread|cancel|close/i })).toBeDefined();
+  });
+
+  it("calls onExitThread when the exit affordance is clicked", async () => {
+    const onExitThread = vi.fn();
+    setup();
+    render(<Composer roomId={roomId} threadRootEventId="$root" onExitThread={onExitThread} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /exit thread|cancel|close/i }));
+    expect(onExitThread).toHaveBeenCalled();
+  });
+
+  it("shows /clear in thread-mode slash autocomplete", async () => {
+    setup();
+    render(<Composer roomId={roomId} threadRootEventId="$root" />);
+    const user = userEvent.setup();
+    const input = screen.getByRole("textbox", { name: /message/i });
+    await user.type(input, "/");
+    const list = screen.getByRole("listbox");
+    expect(list).toBeDefined();
+    expect(screen.getByText(/clear/i)).toBeDefined();
+  });
+});
+
+describe("<Composer /> /clear scope", () => {
+  it("/clear in thread mode sends eco.zoon.session_reset with the thread relation", async () => {
+    const { send } = setup();
+    render(<Composer roomId={roomId} threadRootEventId="$root" />);
+    const user = userEvent.setup();
+    const input = screen.getByRole("textbox", { name: /message/i });
+    await user.type(input, "/clear{Enter}");
+    await waitFor(() =>
+      expect(send).toHaveBeenCalledWith(
+        roomId,
+        "$root",
+        "eco.zoon.session_reset",
+        {},
+      ),
+    );
+  });
+
+  it("/clear is not in slash autocomplete in room mode", async () => {
+    setup();
+    render(<Composer roomId={roomId} />);
+    const user = userEvent.setup();
+    const input = screen.getByRole("textbox", { name: /message/i });
+    await user.type(input, "/");
+    // No /clear suggestion in room mode.
+    expect(screen.queryByText(/^clear$/i)).toBeNull();
+  });
+
+  it("/clear typed at room scope falls through as plain text", async () => {
+    const { send } = setup();
+    render(<Composer roomId={roomId} />);
+    const user = userEvent.setup();
+    const input = screen.getByRole("textbox", { name: /message/i });
+    await user.type(input, "/clear{Enter}");
+    await waitFor(() =>
+      expect(send).toHaveBeenCalledWith(
+        roomId,
+        null,
+        "m.room.message",
+        { msgtype: "m.text", body: "/clear" },
+      ),
+    );
   });
 });

@@ -87,4 +87,32 @@ export function injectStateEvent(room: Room, event: MatrixEvent): void {
   room.currentState.emit(RoomStateEvent.Events, event, room.currentState, null);
 }
 
+export interface MakeMatrixEventOpts {
+  eventId: string;
+  roomId: string;
+  sender: string;
+  type: string;
+  content: Record<string, unknown>;
+  threadReplyCount?: number;
+}
+
+export function makeMatrixEvent(opts: MakeMatrixEventOpts): MatrixEvent {
+  const event = mkMatrixEvent({
+    eventId: opts.eventId,
+    roomId: opts.roomId,
+    sender: opts.sender,
+    type: opts.type,
+    content: opts.content,
+  });
+  if (opts.threadReplyCount !== undefined) {
+    const count = opts.threadReplyCount;
+    (event as unknown as { getThread: () => { length: number } }).getThread = () => ({
+      length: count,
+    });
+  } else {
+    (event as unknown as { getThread: () => null }).getThread = () => null;
+  }
+  return event;
+}
+
 export { mkMatrixEvent, EventType, RoomEvent, RoomStateEvent };
