@@ -10,6 +10,11 @@ export const EcoZoonEventType = {
   TurnEnd: "eco.zoon.turn.end",
 } as const;
 
+export interface ToolLocation {
+  path: string;
+  line?: number;
+}
+
 export type DecodedEcoZoonEvent =
   | { kind: "session.start"; sessionId: string }
   | { kind: "turn.start"; sessionId: string }
@@ -20,6 +25,8 @@ export type DecodedEcoZoonEvent =
       toolCallId: string;
       title: string;
       toolKind: string;
+      rawInput?: Record<string, unknown>;
+      locations?: ToolLocation[];
     }
   | {
       kind: "tool_call_update";
@@ -27,6 +34,7 @@ export type DecodedEcoZoonEvent =
       toolCallId: string;
       status: string;
       content?: string;
+      locations?: ToolLocation[];
     }
   | {
       kind: "plan";
@@ -75,7 +83,15 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
       const title = typeof c.title === "string" ? c.title : null;
       const toolKind = typeof c.kind === "string" ? c.kind : null;
       if (!toolCallId || !title || !toolKind) return null;
-      return { kind: "tool_call", sessionId, toolCallId, title, toolKind };
+      return {
+        kind: "tool_call",
+        sessionId,
+        toolCallId,
+        title,
+        toolKind,
+        rawInput: extractRawInput(c.raw_input),
+        locations: extractLocations(c.locations),
+      };
     }
 
     case EcoZoonEventType.ToolCallUpdate: {
@@ -87,7 +103,8 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
         sessionId,
         toolCallId,
         status,
-        content: typeof c.content === "string" ? c.content : undefined,
+        content: extractContentText(c.content),
+        locations: extractLocations(c.locations),
       };
     }
 
@@ -119,4 +136,49 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
     default:
       return null;
   }
+}
+
+function extractRawInput(v: unknown): Record<string, unknown> | undefined {
+  if (v && typeof v === "object" && !Array.isArray(v)) {
+    return v as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function extractLocations(v: unknown): ToolLocation[] | undefined {
+  if (!Array.isArray(v) || v.length === 0) return undefined;
+  const out: ToolLocation[] = [];
+  for (const item of v) {
+    if (item && typeof item === "object") {
+      const r = item as Record<string, unknown>;
+      if (typeof r.path === "string") {
+        out.push({
+          path: r.path,
+          line: typeof r.line === "number" ? r.line : undefined,
+        });
+      }
+    }
+  }
+  return out.length > 0 ? out : undefined;
+}
+
+/**
+ * tool_call_update.content is either a string (legacy) or an array of
+ * structured content blocks per ACP. Concatenate text blocks for display.
+ */
+function extractContentText(v: unknown): string | undefined {
+  if (typeof v === "string") return v;
+  if (!Array.isArray(v) || v.length === 0) return undefined;
+  const texts: string[] = [];
+  for (const block of v) {
+    if (!block || typeof block !== "object") continue;
+    const b = block as Record<string, unknown>;
+    if (b.type === "content" && b.content && typeof b.content === "object") {
+      const inner = b.content as Record<string, unknown>;
+      if (inner.type === "text" && typeof inner.text === "string") {
+        texts.push(inner.text);
+      }
+    }
+  }
+  return texts.length > 0 ? texts.join("\n") : undefined;
 }

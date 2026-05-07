@@ -4,47 +4,90 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeMatrixEvent } from "../../../test/factories";
 import { TextMessage } from "./text-message";
 
-afterEach(() => cleanup());
+// useThreadPreview requires a live MatrixClient; mock it so TextMessage stays a unit test.
+vi.mock("@/hooks/use-timeline", () => ({
+  useThreadPreview: vi.fn(() => ({ events: [], totalCount: 0 })),
+}));
+
+import { useThreadPreview } from "@/hooks/use-timeline";
+
+const rootEvent = () =>
+  makeMatrixEvent({
+    eventId: "$root",
+    roomId: "!r:h.example",
+    sender: "@alice:h.example",
+    type: "m.room.message",
+    content: { msgtype: "m.text", body: "root message" },
+  });
+
+afterEach(() => {
+  cleanup();
+  vi.mocked(useThreadPreview).mockReturnValue({ events: [], totalCount: 0 });
+});
 
 describe("<TextMessage /> thread affordance", () => {
-  it("shows a 'Reply in thread' control on hover/focus", async () => {
-    const event = makeMatrixEvent({
-      eventId: "$m1",
-      roomId: "!r:h.example",
-      sender: "@alice:h.example",
-      type: "m.room.message",
-      content: { msgtype: "m.text", body: "hi" },
-    });
-    render(<TextMessage event={event} onReplyInThread={vi.fn()} />);
+  it("shows a 'Reply in thread' control", () => {
+    render(<TextMessage event={rootEvent()} onReplyInThread={vi.fn()} />);
     expect(screen.getByRole("button", { name: /reply in thread/i })).toBeDefined();
   });
 
   it("calls onReplyInThread with the event id when clicked", async () => {
     const onReplyInThread = vi.fn();
-    const event = makeMatrixEvent({
-      eventId: "$m1",
+    render(<TextMessage event={rootEvent()} onReplyInThread={onReplyInThread} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: /reply in thread/i }));
+    expect(onReplyInThread).toHaveBeenCalledWith("$root");
+  });
+});
+
+describe("<TextMessage /> inline thread preview", () => {
+  it("renders inline replies when thread has replies", () => {
+    const reply = makeMatrixEvent({
+      eventId: "$r1",
       roomId: "!r:h.example",
-      sender: "@alice:h.example",
+      sender: "@agent:h.example",
       type: "m.room.message",
-      content: { msgtype: "m.text", body: "hi" },
+      content: { msgtype: "m.text", body: "agent's reply" },
     });
-    render(<TextMessage event={event} onReplyInThread={onReplyInThread} />);
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /reply in thread/i }));
-    expect(onReplyInThread).toHaveBeenCalledWith("$m1");
+    vi.mocked(useThreadPreview).mockReturnValue({ events: [reply], totalCount: 1 });
+    render(<TextMessage event={rootEvent()} />);
+    expect(screen.getByText("agent's reply")).toBeInTheDocument();
   });
 
-  it("shows a reply count + 'view thread' when the event is a thread root", async () => {
-    const event = makeMatrixEvent({
-      eventId: "$root",
+  it("shows 'View full history' with count when totalCount > 3", async () => {
+    const replies = Array.from({ length: 3 }, (_, i) =>
+      makeMatrixEvent({
+        eventId: `$r${i}`,
+        roomId: "!r:h.example",
+        sender: "@agent:h.example",
+        type: "m.room.message",
+        content: { msgtype: "m.text", body: `reply ${i}` },
+      }),
+    );
+    vi.mocked(useThreadPreview).mockReturnValue({ events: replies, totalCount: 5 });
+    const onViewThread = vi.fn();
+    render(<TextMessage event={rootEvent()} onViewThread={onViewThread} />);
+    expect(screen.getByRole("button", { name: /view thread/i })).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: /view thread/i }));
+    expect(onViewThread).toHaveBeenCalledWith("$root");
+  });
+
+  it("does not show 'View full history' when totalCount <= 3", () => {
+    const reply = makeMatrixEvent({
+      eventId: "$r1",
       roomId: "!r:h.example",
-      sender: "@alice:h.example",
+      sender: "@agent:h.example",
       type: "m.room.message",
-      content: { msgtype: "m.text", body: "root" },
-      threadReplyCount: 3,
+      content: { msgtype: "m.text", body: "only reply" },
     });
-    render(<TextMessage event={event} onViewThread={vi.fn()} />);
-    expect(screen.getByText(/3 repl/i)).toBeDefined();
-    expect(screen.getByRole("button", { name: /view thread/i })).toBeDefined();
+    vi.mocked(useThreadPreview).mockReturnValue({ events: [reply], totalCount: 1 });
+    render(<TextMessage event={rootEvent()} />);
+    expect(screen.queryByRole("button", { name: /view thread/i })).not.toBeInTheDocument();
+  });
+
+  it("shows no preview when thread is empty", () => {
+    render(<TextMessage event={rootEvent()} />);
+    expect(screen.queryByRole("button", { name: /view thread/i })).not.toBeInTheDocument();
+    // The only button present should be "Reply in thread"
+    expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 });

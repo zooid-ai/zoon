@@ -31,6 +31,27 @@ describe("parseSlashCommand", () => {
     expect(parseSlashCommand("/unknown")).toBeNull();
     expect(parseSlashCommand("/unknown", { threadScoped: true })).toBeNull();
   });
+
+  it("returns null for /interrupt in room mode", () => {
+    expect(parseSlashCommand("/interrupt", { threadScoped: false })).toBeNull();
+    expect(parseSlashCommand("/stop", { threadScoped: false })).toBeNull();
+  });
+
+  it("parses /interrupt in thread mode", () => {
+    const result = parseSlashCommand("/interrupt", { threadScoped: true });
+    expect(result?.eventType).toBe("eco.zoon.interrupt");
+    expect(result?.content).toEqual({});
+  });
+
+  it("parses /stop as an alias for /interrupt", () => {
+    const result = parseSlashCommand("/stop", { threadScoped: true });
+    expect(result?.eventType).toBe("eco.zoon.interrupt");
+  });
+
+  it("captures /interrupt args as a 'reason' field", () => {
+    const result = parseSlashCommand("/interrupt wrong file", { threadScoped: true });
+    expect(result?.content).toEqual({ reason: "wrong file" });
+  });
 });
 
 describe("listSlashCommands", () => {
@@ -46,6 +67,12 @@ describe("listSlashCommands", () => {
     const names = roomCmds.map((c) => c.name);
     expect(names).not.toContain("clear");
     expect(names).not.toContain("new");
+  });
+
+  it("includes /interrupt in thread mode", () => {
+    const names = listSlashCommands({ threadScoped: true }).map((c) => c.name);
+    expect(names).toContain("interrupt");
+    expect(names).toContain("stop");
   });
 
   it("returns empty list in room mode (no non-thread commands yet)", () => {

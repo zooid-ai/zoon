@@ -138,10 +138,10 @@ describe("<Composer /> thread mode", () => {
     );
   });
 
-  it("renders a 'replying in thread' chrome with an exit affordance", async () => {
+  it("renders a 'replying to' chrome with an exit affordance", async () => {
     setup();
     render(<Composer roomId={roomId} threadRootEventId="$root" onExitThread={vi.fn()} />);
-    expect(screen.getByText(/replying in thread/i)).toBeDefined();
+    expect(screen.getByText(/replying to/i)).toBeDefined();
     expect(screen.getByRole("button", { name: /exit thread|cancel|close/i })).toBeDefined();
   });
 
@@ -178,7 +178,7 @@ describe("<Composer /> /clear scope", () => {
         roomId,
         "$root",
         "eco.zoon.session_reset",
-        {},
+        { "m.relates_to": { rel_type: "m.thread", event_id: "$root" } },
       ),
     );
   });

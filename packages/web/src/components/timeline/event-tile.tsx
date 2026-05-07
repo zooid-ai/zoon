@@ -8,12 +8,23 @@ import { TextMessage } from "./text-message";
 export function EventTile({
   event,
   onReplyInThread,
+  onViewThread,
+  disableThreadAffordances,
 }: {
   event: MatrixEvent;
   onReplyInThread?: (eventId: string) => void;
+  onViewThread?: (eventId: string) => void;
+  disableThreadAffordances?: boolean;
 }) {
   if (event.getType() === "m.room.message")
-    return <TextMessage event={event} onReplyInThread={onReplyInThread} />;
+    return (
+      <TextMessage
+        event={event}
+        onReplyInThread={onReplyInThread}
+        onViewThread={onViewThread}
+        disableThreadAffordances={disableThreadAffordances}
+      />
+    );
   if (event.getType() === ApprovalEventType.Request) return <ApprovalCard event={event} />;
   // Approval *responses* are not rendered as their own tile — they only matter
   // as input to <ApprovalCard /> resolution. Skip silently.
@@ -30,7 +41,14 @@ export function EventTile({
   if (isEcoZoonLifecycle(event)) {
     const decoded = decodeEcoZoonEvent(event);
     if (!decoded) return null;
-    return <EcoZoonEventTile decoded={decoded} sender={event.getSender() ?? "?"} />;
+    return (
+      <EcoZoonEventTile
+        decoded={decoded}
+        sender={event.getSender() ?? "?"}
+        roomId={event.getRoomId() ?? ""}
+        ts={event.getTs()}
+      />
+    );
   }
   return null;
 }

@@ -22,6 +22,15 @@ const COMMANDS: SlashCommandSpec[] = [
     threadScopedOnly: true,
     build: () => ({ eventType: "eco.zoon.session_reset", content: {} }),
   },
+  {
+    names: ["interrupt", "stop"],
+    description: "Stop the agent's current turn in this thread",
+    threadScopedOnly: true,
+    build: (args) => ({
+      eventType: "eco.zoon.interrupt",
+      content: args ? { reason: args } : {},
+    }),
+  },
 ];
 
 export function parseSlashCommand(

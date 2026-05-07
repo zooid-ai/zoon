@@ -5,6 +5,7 @@ import { displayNameOf, senderColor } from "@/lib/sender";
 import { listSlashCommands, parseSlashCommand, type SlashCommandMeta } from "@/lib/slash-commands";
 import { useMatrixClient } from "../../hooks/use-matrix-client";
 import { useMembers } from "../../hooks/use-members";
+import { useThreadPreview } from "../../hooks/use-timeline";
 
 const TEXTAREA_CLS =
   "field-sizing-content min-h-9 flex-1 bg-transparent px-2.5 py-2 text-base outline-none placeholder:text-muted-foreground resize-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm";
@@ -27,6 +28,11 @@ interface AutocompleteState {
 
 const USER_ID_IN_BODY = /@[A-Za-z0-9._\-=/+]+:[A-Za-z0-9.\-]+/g;
 
+function truncate(s: string, max: number): string {
+  const trimmed = s.replace(/\s+/g, " ").trim();
+  return trimmed.length > max ? trimmed.slice(0, max - 1) + "…" : trimmed;
+}
+
 export interface ComposerProps {
   roomId: string;
   threadRootEventId?: string | null;
@@ -43,6 +49,21 @@ export function Composer({ roomId, threadRootEventId, onExitThread }: ComposerPr
 
   const threadScoped = Boolean(threadRootEventId);
   const threadId = threadRootEventId ?? null;
+
+  // Get the last message in the thread for the "Replying to" banner.
+  // Always call the hook (avoids conditional hook rules); returns empty when rootEventId is ''.
+  const threadPreview = useThreadPreview(roomId, threadRootEventId ?? "");
+  const lastThreadEvent = threadPreview.events.at(-1);
+  const replyingToBody = useMemo(() => {
+    // Prefer the most-recent reply; fall back to the root event itself.
+    if (lastThreadEvent) {
+      return (lastThreadEvent.getContent() as { body?: string }).body ?? "";
+    }
+    if (!threadRootEventId) return "";
+    const room = client?.getRoom(roomId);
+    const rootEvt = room?.getLiveTimeline().getEvents().find((ev) => ev.getId() === threadRootEventId);
+    return (rootEvt?.getContent() as { body?: string } | undefined)?.body ?? "";
+  }, [lastThreadEvent, threadRootEventId, client, roomId]);
 
   const rawMembers = useMembers(roomId);
   const members = useMemo<Member[]>(
@@ -158,12 +179,21 @@ export function Composer({ roomId, threadRootEventId, onExitThread }: ComposerPr
     try {
       const slash = parseSlashCommand(body, { threadScoped });
       if (slash) {
+        // matrix-js-sdk auto-adds m.relates_to for m.room.message threaded
+        // sends, but not for custom event types (eco.zoon.*). Set the
+        // relation explicitly so the daemon can route by thread root.
+        const slashContent = threadId
+          ? {
+              ...slash.content,
+              "m.relates_to": { rel_type: "m.thread", event_id: threadId },
+            }
+          : slash.content;
         await (client.sendEvent as unknown as SendEvent).call(
           client,
           roomId,
           threadId,
           slash.eventType,
-          slash.content,
+          slashContent,
         );
         setValue("");
         return;
@@ -233,13 +263,20 @@ export function Composer({ roomId, threadRootEventId, onExitThread }: ComposerPr
         </div>
       )}
       {threadRootEventId && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-          <span>Replying in thread</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 min-w-0">
+          <span className="shrink-0">Replying to</span>
+          {replyingToBody ? (
+            <span className="truncate italic text-foreground/70">
+              "{truncate(replyingToBody, 60)}"
+            </span>
+          ) : (
+            <span className="h-3 w-32 rounded bg-muted animate-pulse" aria-busy="true" />
+          )}
           <button
             type="button"
             aria-label="Exit thread"
             onClick={() => onExitThread?.()}
-            className="rounded px-2 py-1 hover:bg-muted"
+            className="ml-auto shrink-0 rounded px-2 py-1 hover:bg-muted"
           >
             Cancel
           </button>
