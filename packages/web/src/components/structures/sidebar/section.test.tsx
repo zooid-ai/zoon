@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Section } from "./section";
+import { UnreadBadge } from "./unread-badge";
 
 describe("<Section>", () => {
   it("renders header, action slot, and children", () => {
@@ -57,5 +58,25 @@ describe("<Section>", () => {
     for (const k of Object.keys(localStorage)) {
       expect(k in before).toBe(true);
     }
+  });
+});
+
+describe("<Section> rollup badge", () => {
+  it("renders a badge in the action slot when rollup > 0", () => {
+    render(
+      <Section title="Rooms" action={<UnreadBadge total={5} highlight={1} />}>
+        <div>row</div>
+      </Section>,
+    );
+    expect(screen.getByText("5")).toBeInTheDocument();
+  });
+
+  it("renders no badge when rollup is 0", () => {
+    render(
+      <Section title="Rooms" action={<UnreadBadge total={0} highlight={0} />}>
+        <div>row</div>
+      </Section>,
+    );
+    expect(screen.queryByText(/^\d+$/)).toBeNull();
   });
 });

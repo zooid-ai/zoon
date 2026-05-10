@@ -9,6 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRoomFavorite } from "../../../hooks/use-room-favorite";
+import { useUnread } from "../../../hooks/use-unread";
+import { UnreadBadge } from "./unread-badge";
 
 interface RoomRowProps {
   room: Room;
@@ -16,6 +18,8 @@ interface RoomRowProps {
 
 export function RoomRow({ room }: RoomRowProps) {
   const { isFavorite, toggle: toggleFavorite } = useRoomFavorite(room.roomId);
+  const { total, highlight } = useUnread(room.roomId);
+  const isUnread = total > 0;
 
   return (
     <div className="flex items-center gap-1 px-2 py-1.5 text-sm hover:bg-sidebar-accent">
@@ -23,8 +27,11 @@ export function RoomRow({ room }: RoomRowProps) {
         <Avatar className="size-6">
           <AvatarFallback>{(room.name ?? room.roomId).slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <span className="truncate">{room.name || room.roomId}</span>
+        <span className={`truncate ${isUnread ? "font-semibold" : ""}`}>
+          {room.name || room.roomId}
+        </span>
       </Link>
+      <UnreadBadge total={total} highlight={highlight} />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

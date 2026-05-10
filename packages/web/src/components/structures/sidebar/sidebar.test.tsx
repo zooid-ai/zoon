@@ -195,3 +195,24 @@ describe("<Sidebar> action affordances", () => {
     expect(await screen.findByRole("dialog", { name: /create channel/i })).toBeInTheDocument();
   });
 });
+
+describe("<Sidebar> unread rollups", () => {
+  it("renders unread rollup badges in section headers when rooms have unread", () => {
+    seed();
+    const client = MatrixClientPeg.safeGet()!;
+    const general = client.getRoom("!general:h.example")!;
+    (general as unknown as { getUnreadNotificationCount: (t: string) => number }).getUnreadNotificationCount =
+      (t) => (t === "total" ? 3 : 0);
+
+    render(
+      <MemoryRouter>
+        <Sidebar spaceId={spaceId} />
+      </MemoryRouter>,
+    );
+
+    const rooms = screen.getByRole("region", { name: "Rooms" });
+    // Rollup badge for Rooms section shows "3" (general); the per-room
+    // badge in <RoomRow> also shows "3". Both are inside the Rooms region.
+    expect(within(rooms).getAllByText("3").length).toBeGreaterThanOrEqual(1);
+  });
+});

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDirectRooms } from "../../../hooks/use-direct-rooms";
 import { useFavoriteRooms } from "../../../hooks/use-favorite-rooms";
 import { useMyPowerLevel } from "../../../hooks/use-my-power-level";
+import { useSectionUnread } from "../../../hooks/use-section-unread";
 import { useSpaceChildren } from "../../../hooks/use-space-children";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +12,7 @@ import { CreateDmDialog } from "../../dialogs/create-dm";
 import { CreateRoomDialog } from "../../dialogs/create-room";
 import { RoomRow } from "./room-row";
 import { Section } from "./section";
+import { UnreadBadge } from "./unread-badge";
 
 interface SidebarProps {
   spaceId: string;
@@ -40,10 +42,17 @@ export function Sidebar({ spaceId }: SidebarProps) {
   const dmList = claim(dms);
   const roomList = claim(spaceChildren);
 
+  const favUnread = useSectionUnread(favList);
+  const dmUnread = useSectionUnread(dmList);
+  const roomUnread = useSectionUnread(roomList);
+
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-2 p-2">
-        <Section title="Favorites">
+        <Section
+          title="Favorites"
+          action={<UnreadBadge total={favUnread.total} highlight={favUnread.highlight} compact />}
+        >
           {favList.map((r) => (
             <RoomRow key={r.roomId} room={r} />
           ))}
@@ -51,16 +60,19 @@ export function Sidebar({ spaceId }: SidebarProps) {
         <Section
           title="Rooms"
           action={
-            canCreateRoom ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                aria-label="add channel"
-                onClick={() => setCreateRoomOpen(true)}
-              >
-                <Plus className="size-3" />
-              </Button>
-            ) : null
+            <div className="flex items-center gap-1">
+              <UnreadBadge total={roomUnread.total} highlight={roomUnread.highlight} compact />
+              {canCreateRoom ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label="add channel"
+                  onClick={() => setCreateRoomOpen(true)}
+                >
+                  <Plus className="size-3" />
+                </Button>
+              ) : null}
+            </div>
           }
         >
           {roomList.map((r) => (
@@ -71,14 +83,17 @@ export function Sidebar({ spaceId }: SidebarProps) {
           title="DMs"
           defaultExpanded={false}
           action={
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label="start dm"
-              onClick={() => setCreateDmOpen(true)}
-            >
-              <Plus className="size-3" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <UnreadBadge total={dmUnread.total} highlight={dmUnread.highlight} compact />
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label="start dm"
+                onClick={() => setCreateDmOpen(true)}
+              >
+                <Plus className="size-3" />
+              </Button>
+            </div>
           }
         >
           {dmList.map((r) => (

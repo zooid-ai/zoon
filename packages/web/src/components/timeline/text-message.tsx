@@ -1,8 +1,12 @@
 import type { MatrixEvent } from "matrix-js-sdk";
+import { MessageSquare } from "lucide-react";
 import { displayNameOf, senderColor, splitMentions } from "@/lib/sender";
 import { UserAvatar } from "@/components/user-avatar";
 import { usePresence } from "@/hooks/use-presence";
+import { useReactions } from "@/hooks/use-reactions";
 import { useThreadPreview } from "@/hooks/use-timeline";
+import { ReactionPicker } from "./reaction-picker";
+import { ReactionsRow } from "./reactions-row";
 
 function AvatarWithPresence({ userId }: { userId: string }) {
   const { presence } = usePresence(userId);
@@ -49,9 +53,10 @@ export function TextMessage({
     roomId,
     disableThreadAffordances ? "" : eventId,
   );
+  const reactions = useReactions(roomId, eventId);
 
   return (
-    <div className="group flex gap-2 py-1.5 hover:bg-muted/30">
+    <div className="group relative flex gap-2 py-1.5 hover:bg-muted/30">
       <div className="mt-0.5 shrink-0">
         <AvatarWithPresence userId={sender} />
       </div>
@@ -80,6 +85,8 @@ export function TextMessage({
           )}
         </p>
 
+        <ReactionsRow roomId={roomId} eventId={eventId} reactions={reactions} />
+
         {!disableThreadAffordances && totalCount > 0 && (
           <div className="mt-2 pl-3 border-l-2 border-muted-foreground/25 space-y-1">
             {totalCount > 3 && (
@@ -98,17 +105,31 @@ export function TextMessage({
         )}
 
         {!disableThreadAffordances && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
+          <button
+            type="button"
+            aria-label="Reply in thread"
+            onClick={() => onReplyInThread?.(eventId)}
+            className="mt-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+          >
+            Reply in thread
+          </button>
+        )}
+      </div>
+
+      <div className="pointer-events-none absolute -top-3 right-2 z-10 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+        <div className="flex items-center gap-1.5 rounded-md border border-border bg-background px-1.5 py-1 shadow-sm">
+          <ReactionPicker roomId={roomId} eventId={eventId} />
+          {!disableThreadAffordances && (
             <button
               type="button"
-              aria-label="Reply in thread"
+              aria-label="Reply"
               onClick={() => onReplyInThread?.(eventId)}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="inline-flex items-center rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              Reply in thread
+              <MessageSquare className="size-4" />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Composer } from "../rooms/composer";
 import { TypingIndicator } from "../rooms/typing-indicator";
 import { ThreadView } from "./thread-view";
 import { TimelinePanel } from "./timeline-panel";
+import { useMarkRead } from "../../hooks/use-mark-read";
 import { useTyping } from "../../hooks/use-typing";
 
 export function RoomView() {
@@ -10,6 +11,7 @@ export function RoomView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const threadRootEventId = searchParams.get("thread");
   const typingUserIds = useTyping(roomId ?? "");
+  useMarkRead(roomId ?? "");
 
   function enterThread(id: string) {
     // Use replace=false so back button returns to the room timeline.

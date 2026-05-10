@@ -87,7 +87,23 @@ describe("<TextMessage /> inline thread preview", () => {
   it("shows no preview when thread is empty", () => {
     render(<TextMessage event={rootEvent()} />);
     expect(screen.queryByRole("button", { name: /view thread/i })).not.toBeInTheDocument();
-    // The only button present should be "Reply in thread"
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    // Buttons present: bottom "Reply in thread" + top-right toolbar
+    // ("add reaction" + "Reply" icon). ReactionsRow renders nothing
+    // because there are no reactions seeded.
+    expect(screen.getAllByRole("button")).toHaveLength(3);
+  });
+});
+
+describe("<TextMessage> reactions", () => {
+  it("shows a hover-only 'add reaction' button next to 'Reply in thread'", () => {
+    render(<TextMessage event={rootEvent()} />);
+    expect(screen.getByRole("button", { name: /add reaction/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reply in thread/i })).toBeInTheDocument();
+  });
+
+  it("still shows the 'add reaction' button when thread affordances are disabled (ThreadView)", () => {
+    render(<TextMessage event={rootEvent()} disableThreadAffordances />);
+    expect(screen.getByRole("button", { name: /add reaction/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /reply in thread/i })).not.toBeInTheDocument();
   });
 });
