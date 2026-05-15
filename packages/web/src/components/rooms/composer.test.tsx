@@ -103,7 +103,9 @@ describe("<Composer />", () => {
       // Move to index 1 and confirm Tab inserts the second member, not the first
       await user.keyboard("{ArrowDown}"); // index 0 → 1
       await user.keyboard("{Tab}");
-      expect((input as HTMLTextAreaElement).value).toMatch(/@bob:h\.example/);
+      // Insertion uses the localpart (@bob), not the full mxid — per the
+      // displayname-rendering decision so expandMentions stays tokenizable.
+      expect((input as HTMLTextAreaElement).value).toMatch(/@bob\b/);
     });
   });
 
