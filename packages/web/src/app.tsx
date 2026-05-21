@@ -32,8 +32,37 @@ export function App({
   const [restored, setRestored] = useState(false);
 
   useEffect(() => {
-    MatrixClientPeg.restoreFromStorage();
-    setRestored(true);
+    const creds = MatrixClientPeg.restoreFromStorage();
+    if (!creds) {
+      setRestored(true);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      // A session restored from storage may belong to a previous homeserver
+      // or use an access token the server has since revoked. Without this
+      // check we'd mount the logged-in routes and surface a confusing
+      // "workforce unavailable" instead of routing to /login.
+      try {
+        const client = MatrixClientPeg.get() as unknown as { whoami: () => Promise<unknown> };
+        await client.whoami();
+      } catch (err) {
+        const e = err as { errcode?: string; data?: { errcode?: string }; httpStatus?: number };
+        const errcode = e.errcode ?? e.data?.errcode;
+        if (
+          errcode === "M_UNKNOWN_TOKEN" ||
+          errcode === "M_MISSING_TOKEN" ||
+          errcode === "M_FORBIDDEN" ||
+          e.httpStatus === 401
+        ) {
+          MatrixClientPeg.reset();
+        }
+      }
+      if (!cancelled) setRestored(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!restored) return <div role="status">Loading…</div>;

@@ -307,12 +307,31 @@ export function useThread(roomId: string, rootEventId: string): ThreadFullState 
 export interface ToolCallStatus {
   status: string | null;
   content: string | null;
-  /** Timestamp of the latest tool_call_update event for this id, or 0 if none. */
+  /**
+   * rawInput accumulated across the initial tool_call event and every
+   * subsequent tool_call_update. Later events extend (rather than replace) the
+   * input so a follow-up update that only sets `status` doesn't blow away
+   * earlier fields like `url` or `command`.
+   */
+  rawInput: Record<string, unknown> | null;
+  /** Timestamp of the latest tool_call or tool_call_update event for this id, or 0 if none. */
   latestUpdateTs: number;
 }
 
-const TOOL_CALL_EMPTY: ToolCallStatus = { status: null, content: null, latestUpdateTs: 0 };
-const toolCallCache = new Map<string, { ts: number; status: string | null; result: ToolCallStatus }>();
+const TOOL_CALL_EMPTY: ToolCallStatus = {
+  status: null,
+  content: null,
+  rawInput: null,
+  latestUpdateTs: 0,
+};
+const toolCallCache = new Map<
+  string,
+  { ts: number; status: string | null; rawInputKey: string; result: ToolCallStatus }
+>();
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
 
 function snapshotToolCall(roomId: string, toolCallId: string): ToolCallStatus {
   const client = MatrixClientPeg.safeGet();
@@ -323,29 +342,59 @@ function snapshotToolCall(roomId: string, toolCallId: string): ToolCallStatus {
   let latestTs = -1;
   let latestStatus: string | null = null;
   let latestContent: string | null = null;
+  let mergedInput: Record<string, unknown> | null = null;
+
+  // Walk all events for this tool call in timeline order, accumulating
+  // rawInput. ACP can deliver fields like `url` on the initial tool_call but
+  // omit them on later tool_call_updates — overwriting would lose them.
+  const relevant: Array<{ ts: number; ev: (typeof all)[number] }> = [];
   for (const ev of all) {
-    if (ev.getType() !== "eco.zoon.tool_call_update") continue;
-    const c = ev.getContent() as { tool_call_id?: string; status?: string; content?: string };
-    if (c.tool_call_id !== toolCallId || typeof c.status !== "string") continue;
-    const ts = ev.getTs();
-    if (ts > latestTs) {
-      latestTs = ts;
-      latestStatus = c.status;
-      latestContent = typeof c.content === "string" ? c.content : null;
+    const t = ev.getType();
+    if (t !== "eco.zoon.tool_call" && t !== "eco.zoon.tool_call_update") continue;
+    const c = ev.getContent() as { tool_call_id?: string };
+    if (c.tool_call_id !== toolCallId) continue;
+    relevant.push({ ts: ev.getTs(), ev });
+  }
+  relevant.sort((a, b) => a.ts - b.ts);
+
+  for (const { ts, ev } of relevant) {
+    const t = ev.getType();
+    const c = ev.getContent() as {
+      tool_call_id?: string;
+      status?: string;
+      content?: string;
+      raw_input?: unknown;
+    };
+    if (isPlainObject(c.raw_input)) {
+      mergedInput = { ...(mergedInput ?? {}), ...c.raw_input };
+    }
+    if (t === "eco.zoon.tool_call_update" && typeof c.status === "string") {
+      if (ts >= latestTs) {
+        latestTs = ts;
+        latestStatus = c.status;
+        latestContent = typeof c.content === "string" ? c.content : null;
+      }
     }
   }
 
+  const rawInputKey = mergedInput ? JSON.stringify(mergedInput) : "";
   const cacheKey = `${roomId}:${toolCallId}`;
   const cached = toolCallCache.get(cacheKey);
-  if (cached && cached.ts === latestTs && cached.status === latestStatus) {
+  if (
+    cached &&
+    cached.ts === latestTs &&
+    cached.status === latestStatus &&
+    cached.rawInputKey === rawInputKey
+  ) {
     return cached.result;
   }
   const result: ToolCallStatus = {
     status: latestStatus,
     content: latestContent,
+    rawInput: mergedInput,
     latestUpdateTs: latestTs > 0 ? latestTs : 0,
   };
-  toolCallCache.set(cacheKey, { ts: latestTs, status: latestStatus, result });
+  toolCallCache.set(cacheKey, { ts: latestTs, status: latestStatus, rawInputKey, result });
   return result;
 }
 

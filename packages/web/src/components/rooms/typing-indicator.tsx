@@ -30,14 +30,14 @@ export function TypingIndicator({ typingUserIds, roomId }: Props) {
 
   const parts: React.ReactNode[] = [];
   named.forEach((uid, i) => {
-    if (i > 0) parts.push(<span key={`sep-${i}`}>, </span>);
+    if (i > 0) parts.push(", ");
     parts.push(<TypingName key={uid} userId={uid} roomId={roomId} />);
   });
 
   return (
-    <div className="h-5 px-3 text-xs text-muted-foreground flex items-center gap-0.5">
+    <div className="h-5 px-3 text-xs text-muted-foreground leading-5">
       {parts}
-      <span>{suffix}</span>
+      {suffix}
     </div>
   );
 }

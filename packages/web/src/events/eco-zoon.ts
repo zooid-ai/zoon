@@ -34,6 +34,7 @@ export type DecodedEcoZoonEvent =
       toolCallId: string;
       status: string;
       content?: string;
+      rawInput?: Record<string, unknown>;
       locations?: ToolLocation[];
     }
   | {
@@ -104,6 +105,7 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
         toolCallId,
         status,
         content: extractContentText(c.content),
+        rawInput: extractRawInput(c.raw_input),
         locations: extractLocations(c.locations),
       };
     }

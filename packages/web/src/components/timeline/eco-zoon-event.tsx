@@ -130,7 +130,10 @@ function ToolCallCard({
   ts: number;
 }) {
   const [open, setOpen] = useState(false);
-  const { status, content, latestUpdateTs } = useToolCallStatus(roomId, decoded.toolCallId);
+  const { status, content, rawInput: mergedRawInput, latestUpdateTs } = useToolCallStatus(
+    roomId,
+    decoded.toolCallId,
+  );
   const approval = useToolCallApproval(roomId, decoded.toolCallId);
   const senderName = useUserName(sender, roomId);
   const Icon = toolIcon(decoded.toolKind);
@@ -147,12 +150,13 @@ function ToolCallCard({
   const effectiveStatus = stalled
     ? "stalled"
     : status ?? (isUnresolved ? "in_progress" : null);
-  // Prefer rawInput on the tool_call event; fall back to the matching
-  // approval_request's tool_input. Many ACP agents only attach detailed input
-  // to the approval, not the tool_call event itself.
+  // Prefer the rawInput merged across the initial tool_call and every
+  // tool_call_update (later updates can omit fields the first event set, like
+  // a webfetch url). Fall back to the matching approval_request's tool_input
+  // when no rawInput came through on any event.
   const effectiveInput =
-    (decoded.rawInput && Object.keys(decoded.rawInput).length > 0
-      ? decoded.rawInput
+    (mergedRawInput && Object.keys(mergedRawInput).length > 0
+      ? mergedRawInput
       : approval.toolInput) ?? undefined;
   const subtitle = summarizeRawInput(decoded.toolKind, effectiveInput, decoded.locations);
   return (
