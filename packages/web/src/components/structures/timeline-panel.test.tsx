@@ -41,7 +41,7 @@ describe("<TimelinePanel />", () => {
     await waitFor(() => expect(screen.getByText("hello world")).toBeInTheDocument());
   });
 
-  it("renders eco.zoon.message_chunk events with their content", async () => {
+  it("renders eco.zoon.agent_message_chunk events with their content", async () => {
     stubSyncWithRooms(HS, [
       {
         roomId,
@@ -49,7 +49,7 @@ describe("<TimelinePanel />", () => {
         state: [{ type: "m.room.name", sender: me, stateKey: "", content: { name: "alpha" } }],
         timeline: [
           {
-            type: "eco.zoon.message_chunk",
+            type: "eco.zoon.agent_message_chunk",
             sender: "@architect.acme:h.example",
             content: { session_id: "s1", content: "agent thinking…" },
           },

@@ -35,7 +35,7 @@ export function EcoZoonEventTile({ decoded, sender, roomId, ts }: Props) {
     case "turn.end":
       return <Divider text={`turn ended${decoded.stopReason ? ` (${decoded.stopReason})` : ""}`} />;
 
-    case "message_chunk":
+    case "agent_message_chunk":
       return (
         <div className="py-1 text-sm text-foreground/80">
           <span className="font-mono text-muted-foreground mr-2">{senderName}</span>

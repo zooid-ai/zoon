@@ -3,7 +3,7 @@ import type { MatrixEvent } from "matrix-js-sdk";
 export const EcoZoonEventType = {
   SessionStart: "eco.zoon.session.start",
   TurnStart: "eco.zoon.turn.start",
-  MessageChunk: "eco.zoon.message_chunk",
+  AgentMessageChunk: "eco.zoon.agent_message_chunk",
   ToolCall: "eco.zoon.tool_call",
   ToolCallUpdate: "eco.zoon.tool_call_update",
   Plan: "eco.zoon.plan",
@@ -18,7 +18,7 @@ export interface ToolLocation {
 export type DecodedEcoZoonEvent =
   | { kind: "session.start"; sessionId: string }
   | { kind: "turn.start"; sessionId: string }
-  | { kind: "message_chunk"; sessionId: string; content: string }
+  | { kind: "agent_message_chunk"; sessionId: string; content: string }
   | {
       kind: "tool_call";
       sessionId: string;
@@ -49,8 +49,8 @@ export function isEcoZoonLifecycle(ev: MatrixEvent): boolean {
   return lifecycleTypes.has(ev.getType());
 }
 
-export function isMessageChunk(ev: MatrixEvent): boolean {
-  return ev.getType() === EcoZoonEventType.MessageChunk;
+export function isAgentMessageChunk(ev: MatrixEvent): boolean {
+  return ev.getType() === EcoZoonEventType.AgentMessageChunk;
 }
 
 export function isToolCall(ev: MatrixEvent): boolean {
@@ -73,9 +73,9 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
     case EcoZoonEventType.TurnStart:
       return { kind: "turn.start", sessionId };
 
-    case EcoZoonEventType.MessageChunk: {
+    case EcoZoonEventType.AgentMessageChunk: {
       if (typeof c.content !== "string") return null;
-      return { kind: "message_chunk", sessionId, content: c.content };
+      return { kind: "agent_message_chunk", sessionId, content: c.content };
     }
 
     case EcoZoonEventType.ToolCall: {

@@ -4,7 +4,7 @@ import {
   EcoZoonEventType,
   decodeEcoZoonEvent,
   isEcoZoonLifecycle,
-  isMessageChunk,
+  isAgentMessageChunk,
   isToolCall,
   isTurnEnd,
 } from "./eco-zoon";
@@ -33,15 +33,15 @@ describe("decodeEcoZoonEvent", () => {
     expect(decodeEcoZoonEvent(ev)).toEqual({ kind: "turn.start", sessionId: "s1" });
   });
 
-  it("decodes message_chunk", () => {
+  it("decodes agent_message_chunk", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.MessageChunk,
+      type: EcoZoonEventType.AgentMessageChunk,
       content: { session_id: "s1", content: "hello" },
     });
     expect(decodeEcoZoonEvent(ev)).toEqual({
-      kind: "message_chunk",
+      kind: "agent_message_chunk",
       sessionId: "s1",
       content: "hello",
     });
@@ -129,7 +129,7 @@ describe("decodeEcoZoonEvent", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.MessageChunk,
+      type: EcoZoonEventType.AgentMessageChunk,
       content: { session_id: "s1" },
     });
     expect(decodeEcoZoonEvent(ev)).toBeNull();
@@ -151,7 +151,7 @@ describe("type guards", () => {
     const types = [
       EcoZoonEventType.SessionStart,
       EcoZoonEventType.TurnStart,
-      EcoZoonEventType.MessageChunk,
+      EcoZoonEventType.AgentMessageChunk,
       EcoZoonEventType.ToolCall,
       EcoZoonEventType.ToolCallUpdate,
       EcoZoonEventType.Plan,
@@ -173,14 +173,14 @@ describe("type guards", () => {
     expect(isEcoZoonLifecycle(ev)).toBe(false);
   });
 
-  it("isMessageChunk / isToolCall / isTurnEnd narrow correctly", () => {
+  it("isAgentMessageChunk / isToolCall / isTurnEnd narrow correctly", () => {
     const chunk = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.MessageChunk,
+      type: EcoZoonEventType.AgentMessageChunk,
       content: { session_id: "s1", content: "x" },
     });
-    expect(isMessageChunk(chunk)).toBe(true);
+    expect(isAgentMessageChunk(chunk)).toBe(true);
     expect(isToolCall(chunk)).toBe(false);
     expect(isTurnEnd(chunk)).toBe(false);
   });
