@@ -1,11 +1,12 @@
 import type { MatrixEvent } from "matrix-js-sdk";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, TriangleAlertIcon } from "lucide-react";
 import { senderColor, splitMentions } from "@/lib/sender";
 import { UserAvatar } from "@/components/user-avatar";
 import { usePresence } from "@/hooks/use-presence";
 import { useReactions } from "@/hooks/use-reactions";
 import { useThreadPreview } from "@/hooks/use-timeline";
 import { useUserName } from "@/hooks/use-user-name";
+import { EcoZoonEventType } from "@/events/eco-zoon";
 import { FormattedMessageBody } from "./formatted-message-body";
 import { ReactionPicker } from "./reaction-picker";
 import { ReactionsRow } from "./reactions-row";
@@ -42,10 +43,25 @@ function InlineReply({ event }: { event: MatrixEvent }) {
     body?: string;
     format?: string;
     formatted_body?: string;
+    message?: string;
   };
   const sender = event.getSender() ?? "?";
   const roomId = event.getRoomId() ?? "";
   const name = useUserName(sender, roomId);
+
+  if (event.getType() === EcoZoonEventType.Error) {
+    const message = typeof c.message === "string" ? c.message : "Agent error";
+    return (
+      <div className="flex items-center gap-1.5 text-sm leading-5 text-muted-foreground">
+        <TriangleAlertIcon className="h-3.5 w-3.5 shrink-0" />
+        <span className="shrink-0 font-semibold" style={{ color: senderColor(sender) }}>
+          {name}
+        </span>
+        <span className="line-clamp-1 min-w-0 flex-1">{message}</span>
+      </div>
+    );
+  }
+
   const hasFormatted =
     c.format === "org.matrix.custom.html" &&
     typeof c.formatted_body === "string" &&
