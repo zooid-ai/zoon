@@ -1,7 +1,6 @@
 import { ChevronDown, Star } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useMatch } from "react-router-dom";
-import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,11 +17,10 @@ import { Separator } from "@/components/ui/separator";
 import { MatrixClientPeg } from "../../client/peg";
 import { useMembers } from "../../hooks/use-members";
 import { useMyPowerLevel } from "../../hooks/use-my-power-level";
-import { usePresence } from "../../hooks/use-presence";
 import { useRoomFavorite } from "../../hooks/use-room-favorite";
-import { useUserName } from "../../hooks/use-user-name";
 import { InviteUserDialog } from "../dialogs/invite-user";
 import { RenameRoomDialog } from "../dialogs/rename-room";
+import { MemberRow } from "./member-row";
 
 interface RoomHeaderProps {
   spaceId: string | null;
@@ -135,17 +133,6 @@ export function RoomHeader({ spaceId }: RoomHeaderProps) {
         currentName={roomName}
         onOpenChange={setRenameOpen}
       />
-    </>
-  );
-}
-
-function MemberRow({ roomId, userId }: { roomId: string; userId: string }) {
-  const { presence } = usePresence(userId);
-  const name = useUserName(userId, roomId);
-  return (
-    <>
-      <UserAvatar userId={userId} size="sm" presence={presence} />
-      <span className="text-sm truncate">{name}</span>
     </>
   );
 }
