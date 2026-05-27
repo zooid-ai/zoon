@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ export function Login({ homeserverUrl, defaultIdpLabel }: LoginProps) {
   const [flows, setFlows] = useState<LoginFlow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const redirectedRef = useRef(false);
 
   useEffect(() => {
     fetchLoginFlows(homeserverUrl)
@@ -28,8 +29,37 @@ export function Login({ homeserverUrl, defaultIdpLabel }: LoginProps) {
       .catch((e) => setError(String(e.message ?? e)));
   }, [homeserverUrl]);
 
+  // Opt-in (VITE_AUTO_REDIRECT_SINGLE_SSO): on an SSO-only homeserver with a
+  // single IdP (e.g. the Zoon community space behind accounts.zooid.dev), skip
+  // the login screen and redirect straight to the provider. Off by default, so
+  // normal multi-option servers always render the chooser.
+  const autoRedirectSingleSso =
+    (import.meta.env.VITE_AUTO_REDIRECT_SINGLE_SSO as string | undefined) === "true";
+  const singleSsoOnly =
+    !!flows &&
+    !flows.some((f) => f.type === "m.login.password") &&
+    (() => {
+      const sso = flows.find((f) => f.type === "m.login.sso");
+      const idps = sso?.identity_providers ?? (sso ? [{ id: "" }] : []);
+      return idps.length === 1;
+    })();
+
+  useEffect(() => {
+    if (!flows || redirectedRef.current || !autoRedirectSingleSso || !singleSsoOnly) return;
+    const sso = flows.find((f) => f.type === "m.login.sso");
+    const idps = sso?.identity_providers ?? (sso ? [{ id: "" }] : []);
+    redirectedRef.current = true;
+    const callback = `${window.location.origin}/auth/callback`;
+    window.location.assign(ssoRedirectUrl(homeserverUrl, callback, idps[0]?.id || undefined));
+  }, [flows, homeserverUrl, autoRedirectSingleSso, singleSsoOnly]);
+
   if (!flows) {
     return <div role="status">Loading login options…</div>;
+  }
+
+  // Auto-redirect in flight — avoid flashing the chooser.
+  if (autoRedirectSingleSso && singleSsoOnly) {
+    return <div role="status">Redirecting to sign in…</div>;
   }
 
   const passwordFlow = flows.find((f) => f.type === "m.login.password");
