@@ -10,6 +10,43 @@ export interface MemberRole {
   role: Role;
 }
 
+export type MemberGroupKind = "admin" | "moderator" | "member";
+
+export interface MemberRoleGroup {
+  kind: MemberGroupKind;
+  label: string;
+  members: MemberRole[];
+}
+
+const GROUP_ORDER: { kind: MemberGroupKind; label: string }[] = [
+  { kind: "admin", label: "Admins" },
+  { kind: "moderator", label: "Moderators" },
+  { kind: "member", label: "Members" },
+];
+
+// Bucket members into Admins / Moderators / Members (default + custom fold into
+// Members), each sorted by power level descending then display name. Empty
+// groups are omitted.
+export function groupMembersByRole(members: MemberRole[]): MemberRoleGroup[] {
+  const buckets: Record<MemberGroupKind, MemberRole[]> = {
+    admin: [],
+    moderator: [],
+    member: [],
+  };
+  for (const m of members) {
+    const kind: MemberGroupKind =
+      m.role.kind === "admin" ? "admin" : m.role.kind === "moderator" ? "moderator" : "member";
+    buckets[kind].push(m);
+  }
+  const byRank = (a: MemberRole, b: MemberRole) =>
+    b.powerLevel - a.powerLevel || a.displayName.localeCompare(b.displayName);
+  return GROUP_ORDER.filter(({ kind }) => buckets[kind].length > 0).map(({ kind, label }) => ({
+    kind,
+    label,
+    members: buckets[kind].sort(byRank),
+  }));
+}
+
 const EMPTY: MemberRole[] = [];
 
 interface CacheEntry {

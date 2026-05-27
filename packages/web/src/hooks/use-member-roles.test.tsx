@@ -2,7 +2,8 @@ import { renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { makeFakeClient, makeRoom, mkMatrixEvent } from "../../test/factories";
 import { MatrixClientPeg } from "../client/peg";
-import { useMemberRoles } from "./use-member-roles";
+import { roleForLevel } from "../lib/roles";
+import { type MemberRole, groupMembersByRole, useMemberRoles } from "./use-member-roles";
 
 const me = "@me:h.example";
 const roomId = "!r:h.example";
@@ -68,5 +69,36 @@ describe("useMemberRoles", () => {
     const odd = result.current.find((m) => m.userId === "@odd:h.example");
     expect(odd?.powerLevel).toBe(25);
     expect(odd?.role.kind).toBe("custom");
+  });
+});
+
+function member(userId: string, powerLevel: number): MemberRole {
+  return { userId, displayName: userId, powerLevel, role: roleForLevel(powerLevel) };
+}
+
+describe("groupMembersByRole", () => {
+  it("groups admins, moderators, then members in that order", () => {
+    const groups = groupMembersByRole([
+      member("@bob:h", 0),
+      member("@admin:h", 100),
+      member("@mod:h", 50),
+    ]);
+    expect(groups.map((g) => g.kind)).toEqual(["admin", "moderator", "member"]);
+    expect(groups.map((g) => g.label)).toEqual(["Admins", "Moderators", "Members"]);
+  });
+
+  it("folds default and custom levels into the Members group, sorted by power desc", () => {
+    const groups = groupMembersByRole([
+      member("@def:h", 0),
+      member("@custom:h", 25),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].kind).toBe("member");
+    expect(groups[0].members.map((m) => m.userId)).toEqual(["@custom:h", "@def:h"]);
+  });
+
+  it("omits empty groups", () => {
+    const groups = groupMembersByRole([member("@admin:h", 100)]);
+    expect(groups.map((g) => g.kind)).toEqual(["admin"]);
   });
 });

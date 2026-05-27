@@ -8,25 +8,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
 import { MatrixClientPeg } from "../../client/peg";
-import { useMembers } from "../../hooks/use-members";
+import { useMemberRoles } from "../../hooks/use-member-roles";
 import { useMyPowerLevel } from "../../hooks/use-my-power-level";
 import { useRoomFavorite } from "../../hooks/use-room-favorite";
-import { InviteUserDialog } from "../dialogs/invite-user";
 import { RenameRoomDialog } from "../dialogs/rename-room";
-import { MemberRow } from "./member-row";
 
 interface RoomHeaderProps {
-  spaceId: string | null;
+  membersOpen?: boolean;
+  onToggleMembers?: () => void;
 }
 
-export function RoomHeader({ spaceId }: RoomHeaderProps) {
+export function RoomHeader({ membersOpen, onToggleMembers }: RoomHeaderProps) {
   const match = useMatch("/room/:roomId");
   const roomId = match?.params.roomId;
   const client = useSyncExternalStore(
@@ -34,26 +27,19 @@ export function RoomHeader({ spaceId }: RoomHeaderProps) {
     () => MatrixClientPeg.safeGet(),
     () => null,
   );
-  const members = useMembers(roomId ?? "");
+  const members = useMemberRoles(roomId ?? "");
   const myPL = useMyPowerLevel(roomId ?? "");
   const { isFavorite, toggle: toggleFavorite } = useRoomFavorite(roomId ?? "");
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
 
   if (!roomId || !client) return null;
 
   const room = client.getRoom(roomId);
   const roomName = room?.name ?? roomId;
-  const invitePL =
-    (room?.currentState.getStateEvents("m.room.power_levels", "")?.getContent() as {
-      invite?: number;
-    } | null)?.invite ?? 50;
-  const canInvite = myPL.level >= invitePL;
   const canRename = myPL.canSendStateEvent("m.room.name");
 
   return (
     <>
-      <Separator orientation="vertical" className="h-4" />
       {canRename ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -88,44 +74,19 @@ export function RoomHeader({ spaceId }: RoomHeaderProps) {
         />
       </Button>
       {members.length > 0 && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-1.5 text-xs text-muted-foreground"
-            >
-              {members.length} member{members.length !== 1 ? "s" : ""}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-56 p-2">
-            {canInvite && spaceId && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mb-2 w-full"
-                onClick={() => setInviteOpen(true)}
-              >
-                Invite
-              </Button>
-            )}
-            <ul className="space-y-1">
-              {members.map((m) => (
-                <li key={m.userId} className="flex items-center gap-2 py-0.5">
-                  <MemberRow roomId={roomId} userId={m.userId} />
-                </li>
-              ))}
-            </ul>
-          </PopoverContent>
-        </Popover>
-      )}
-      {spaceId && (
-        <InviteUserDialog
-          open={inviteOpen}
-          roomId={roomId}
-          spaceId={spaceId}
-          onOpenChange={setInviteOpen}
-        />
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-pressed={membersOpen}
+          onClick={onToggleMembers}
+          className={`h-6 px-1.5 text-xs ${
+            membersOpen
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground"
+          }`}
+        >
+          {members.length} member{members.length !== 1 ? "s" : ""}
+        </Button>
       )}
       <RenameRoomDialog
         open={renameOpen}

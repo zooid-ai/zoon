@@ -38,7 +38,7 @@ describe("<RoomHeader> favorite star", () => {
     render(
       <MemoryRouter initialEntries={[`/room/${roomId}`]}>
         <Routes>
-          <Route path="/room/:roomId" element={<RoomHeader spaceId="!space:h.example" />} />
+          <Route path="/room/:roomId" element={<RoomHeader />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -55,7 +55,7 @@ describe("<RoomHeader> favorite star", () => {
     render(
       <MemoryRouter initialEntries={[`/room/${roomId}`]}>
         <Routes>
-          <Route path="/room/:roomId" element={<RoomHeader spaceId="!space:h.example" />} />
+          <Route path="/room/:roomId" element={<RoomHeader />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -75,7 +75,7 @@ describe("<RoomHeader> favorite star", () => {
     render(
       <MemoryRouter initialEntries={[`/room/${roomId}`]}>
         <Routes>
-          <Route path="/room/:roomId" element={<RoomHeader spaceId="!space:h.example" />} />
+          <Route path="/room/:roomId" element={<RoomHeader />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -83,47 +83,22 @@ describe("<RoomHeader> favorite star", () => {
   });
 });
 
-describe("<RoomHeader> invite affordance", () => {
-  it("shows the Invite button to users with PL ≥ invite", async () => {
+describe("<RoomHeader> members toggle", () => {
+  it("calls onToggleMembers when the member count is clicked", async () => {
     setup(50);
+    const onToggleMembers = vi.fn();
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={[`/room/${roomId}`]}>
         <Routes>
-          <Route path="/room/:roomId" element={<RoomHeader spaceId="!space:h.example" />} />
+          <Route
+            path="/room/:roomId"
+            element={<RoomHeader onToggleMembers={onToggleMembers} />}
+          />
         </Routes>
       </MemoryRouter>,
     );
     await user.click(screen.getByRole("button", { name: /\d+ member/i }));
-    expect(await screen.findByRole("button", { name: /invite/i })).toBeInTheDocument();
-  });
-
-  it("hides Invite when PL < invite", async () => {
-    setup(0);
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter initialEntries={[`/room/${roomId}`]}>
-        <Routes>
-          <Route path="/room/:roomId" element={<RoomHeader spaceId="!space:h.example" />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-    await user.click(screen.getByRole("button", { name: /\d+ member/i }));
-    expect(screen.queryByRole("button", { name: /invite/i })).not.toBeInTheDocument();
-  });
-
-  it("opens the invite dialog on click", async () => {
-    setup(100);
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter initialEntries={[`/room/${roomId}`]}>
-        <Routes>
-          <Route path="/room/:roomId" element={<RoomHeader spaceId="!space:h.example" />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-    await user.click(screen.getByRole("button", { name: /\d+ member/i }));
-    await user.click(await screen.findByRole("button", { name: /invite/i }));
-    expect(await screen.findByRole("dialog", { name: /invite to room/i })).toBeInTheDocument();
+    expect(onToggleMembers).toHaveBeenCalledTimes(1);
   });
 });
