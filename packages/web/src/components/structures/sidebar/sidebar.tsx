@@ -2,6 +2,7 @@ import { Compass, Plus } from "lucide-react";
 import { type Room } from "matrix-js-sdk";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDirectRooms } from "../../../hooks/use-direct-rooms";
 import { useFavoriteRooms } from "../../../hooks/use-favorite-rooms";
 import { useMyPowerLevel } from "../../../hooks/use-my-power-level";
@@ -72,29 +73,41 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
         <Section
           title="Rooms"
           action={
+            <TooltipProvider>
             <div className="flex items-center gap-1">
               <UnreadBadge total={roomUnread.total} highlight={roomUnread.highlight} />
               {canBrowse ? (
-                <button
-                  type="button"
-                  aria-label="browse rooms"
-                  onClick={() => navigate("/browse")}
-                  className={ICON_BTN_CLS}
-                >
-                  <Compass className="size-3" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="browse rooms"
+                      onClick={() => navigate("/browse")}
+                      className={ICON_BTN_CLS}
+                    >
+                      <Compass className="size-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Browse rooms</TooltipContent>
+                </Tooltip>
               ) : null}
               {canCreateRoom ? (
-                <button
-                  type="button"
-                  aria-label="add room"
-                  onClick={() => setCreateRoomOpen(true)}
-                  className={ICON_BTN_CLS}
-                >
-                  <Plus className="size-3" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="add room"
+                      onClick={() => setCreateRoomOpen(true)}
+                      className={ICON_BTN_CLS}
+                    >
+                      <Plus className="size-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Create room</TooltipContent>
+                </Tooltip>
               ) : null}
             </div>
+            </TooltipProvider>
           }
         >
           {roomList.map((r) => (
