@@ -22,14 +22,14 @@ interface CreateRoomDialogProps {
 export function CreateRoomDialog({ open, spaceId, onOpenChange }: CreateRoomDialogProps) {
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
-  const [privacy, setPrivacy] = useState<"public" | "private">("public");
+  const [privacy, setPrivacy] = useState<"space" | "invite">("space");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const reset = () => {
     setName("");
     setTopic("");
-    setPrivacy("public");
+    setPrivacy("space");
     setSubmitting(false);
   };
 
@@ -42,6 +42,25 @@ export function CreateRoomDialog({ open, spaceId, onOpenChange }: CreateRoomDial
     setSubmitting(true);
     try {
       const serverName = client.getUserId()?.split(":")[1] ?? "";
+      const initialState: Record<string, unknown>[] = [
+        {
+          type: "m.space.parent",
+          state_key: spaceId,
+          content: { via: [serverName], canonical: true },
+        },
+      ];
+      if (privacy === "space") {
+        // Restricted-to-space: any member of this space can join. Without this,
+        // the room would default to invite-only (private_chat).
+        initialState.push({
+          type: "m.room.join_rules",
+          state_key: "",
+          content: {
+            join_rule: "restricted",
+            allow: [{ type: "m.room_membership", room_id: spaceId }],
+          },
+        });
+      }
       const created = (await (
         client as unknown as {
           createRoom: (opts: Record<string, unknown>) => Promise<{ room_id: string }>;
@@ -49,14 +68,8 @@ export function CreateRoomDialog({ open, spaceId, onOpenChange }: CreateRoomDial
       ).createRoom({
         name: trimmed,
         topic: topic.trim() || undefined,
-        preset: privacy === "public" ? "public_chat" : "private_chat",
-        initial_state: [
-          {
-            type: "m.space.parent",
-            state_key: spaceId,
-            content: { via: [serverName], canonical: true },
-          },
-        ],
+        preset: "private_chat",
+        initial_state: initialState,
       })) as { room_id: string };
       const newRoomId = created.room_id;
       await (
@@ -88,9 +101,9 @@ export function CreateRoomDialog({ open, spaceId, onOpenChange }: CreateRoomDial
       <DialogContent>
         <form onSubmit={onSubmit}>
           <DialogHeader>
-            <DialogTitle>Create channel</DialogTitle>
+            <DialogTitle>Create room</DialogTitle>
             <DialogDescription>
-              Channels are public to the workforce by default.
+              Rooms are joinable by everyone in this space by default.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-2">
@@ -114,26 +127,26 @@ export function CreateRoomDialog({ open, spaceId, onOpenChange }: CreateRoomDial
               />
             </div>
             <fieldset className="flex flex-col gap-2">
-              <legend className="text-sm font-medium">Privacy</legend>
+              <legend className="text-sm font-medium">Who can join</legend>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
                   name="privacy"
-                  value="public"
-                  checked={privacy === "public"}
-                  onChange={() => setPrivacy("public")}
+                  value="space"
+                  checked={privacy === "space"}
+                  onChange={() => setPrivacy("space")}
                 />
-                Public — anyone in the workforce
+                Space members — anyone in this space can join
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
                   name="privacy"
-                  value="private"
-                  checked={privacy === "private"}
-                  onChange={() => setPrivacy("private")}
+                  value="invite"
+                  checked={privacy === "invite"}
+                  onChange={() => setPrivacy("invite")}
                 />
-                Private — invite only
+                Invite only — added manually
               </label>
             </fieldset>
           </div>
@@ -142,7 +155,7 @@ export function CreateRoomDialog({ open, spaceId, onOpenChange }: CreateRoomDial
               Cancel
             </Button>
             <Button type="submit" disabled={!name.trim() || submitting}>
-              Create channel
+              Create room
             </Button>
           </DialogFooter>
         </form>

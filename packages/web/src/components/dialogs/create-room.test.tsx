@@ -24,7 +24,7 @@ function setup() {
 }
 
 describe("<CreateRoomDialog>", () => {
-  it("creates a public room with the given name + topic and attaches it as a space child", async () => {
+  it("creates a Space members (restricted) room by default and attaches it as a space child", async () => {
     const { createRoom, sendStateEvent } = setup();
     const onOpenChange = vi.fn();
     const user = userEvent.setup();
@@ -42,19 +42,26 @@ describe("<CreateRoomDialog>", () => {
 
     await user.type(screen.getByLabelText(/name/i), "design");
     await user.type(screen.getByLabelText(/topic/i), "ui chatter");
-    await user.click(screen.getByRole("button", { name: /create channel/i }));
+    await user.click(screen.getByRole("button", { name: /create room/i }));
 
     await waitFor(() =>
       expect(createRoom).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "design",
           topic: "ui chatter",
-          preset: "public_chat",
           initial_state: expect.arrayContaining([
             expect.objectContaining({
               type: "m.space.parent",
               state_key: spaceId,
               content: expect.objectContaining({ canonical: true }),
+            }),
+            expect.objectContaining({
+              type: "m.room.join_rules",
+              state_key: "",
+              content: {
+                join_rule: "restricted",
+                allow: [{ type: "m.room_membership", room_id: spaceId }],
+              },
             }),
           ]),
         }),
@@ -71,7 +78,7 @@ describe("<CreateRoomDialog>", () => {
     await waitFor(() => expect(screen.getByTestId("room-page")).toBeInTheDocument());
   });
 
-  it("creates a private room when the Private radio is selected", async () => {
+  it("creates an invite-only room (no restricted join rule) when Invite only is selected", async () => {
     const { createRoom } = setup();
     const user = userEvent.setup();
     render(
@@ -80,13 +87,12 @@ describe("<CreateRoomDialog>", () => {
       </MemoryRouter>,
     );
     await user.type(screen.getByLabelText(/name/i), "secret");
-    await user.click(screen.getByRole("radio", { name: /private/i }));
-    await user.click(screen.getByRole("button", { name: /create channel/i }));
-    await waitFor(() =>
-      expect(createRoom).toHaveBeenCalledWith(
-        expect.objectContaining({ preset: "private_chat" }),
-      ),
-    );
+    await user.click(screen.getByRole("radio", { name: /invite only/i }));
+    await user.click(screen.getByRole("button", { name: /create room/i }));
+    await waitFor(() => expect(createRoom).toHaveBeenCalledTimes(1));
+    const opts = createRoom.mock.calls[0][0] as { initial_state: Array<{ type: string }> };
+    expect(opts.initial_state.some((e) => e.type === "m.room.join_rules")).toBe(false);
+    expect(opts.initial_state.some((e) => e.type === "m.space.parent")).toBe(true);
   });
 
   it("disables submit while name is empty", async () => {
@@ -96,6 +102,6 @@ describe("<CreateRoomDialog>", () => {
         <CreateRoomDialog open spaceId={spaceId} onOpenChange={() => {}} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("button", { name: /create channel/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /create room/i })).toBeDisabled();
   });
 });

@@ -27,6 +27,10 @@ import { RoomHeader } from "./room-header";
 import type { Scope } from "./sidebar/scope";
 import { SpaceSwitcher } from "./sidebar/space-switcher";
 
+export interface LoggedInOutletContext {
+  spaceId: string | null;
+}
+
 export function LoggedInView() {
   const client = useMatrixClient();
   const userId = client.getUserId() ?? "";
@@ -93,7 +97,7 @@ export function LoggedInView() {
         <main className="flex-1 min-h-0 overflow-hidden">
           <div className="flex h-full min-h-0">
             <div className="min-w-0 flex-1 overflow-hidden">
-              <Outlet />
+              <Outlet context={{ spaceId } satisfies LoggedInOutletContext} />
             </div>
             {membersOpen && roomId && <MemberPanel roomId={roomId} spaceId={spaceId} />}
           </div>

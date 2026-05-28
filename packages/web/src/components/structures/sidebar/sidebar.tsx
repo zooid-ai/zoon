@@ -1,6 +1,7 @@
-import { Plus } from "lucide-react";
+import { Compass, Plus } from "lucide-react";
 import { type Room } from "matrix-js-sdk";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDirectRooms } from "../../../hooks/use-direct-rooms";
 import { useFavoriteRooms } from "../../../hooks/use-favorite-rooms";
 import { useMyPowerLevel } from "../../../hooks/use-my-power-level";
@@ -31,8 +32,10 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
   const allRooms = useRoomList();
   const myPL = useMyPowerLevel(spaceId);
   const canCreateRoom = scope.kind === "space" && myPL.canSendStateEvent("m.space.child");
+  const canBrowse = scope.kind === "space";
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [createDmOpen, setCreateDmOpen] = useState(false);
+  const navigate = useNavigate();
 
   // First-claim ordering: Favorites → DMs → Rooms.
   const claimed = new Set<string>();
@@ -71,10 +74,20 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
           action={
             <div className="flex items-center gap-1">
               <UnreadBadge total={roomUnread.total} highlight={roomUnread.highlight} />
+              {canBrowse ? (
+                <button
+                  type="button"
+                  aria-label="browse rooms"
+                  onClick={() => navigate("/browse")}
+                  className={ICON_BTN_CLS}
+                >
+                  <Compass className="size-3" />
+                </button>
+              ) : null}
               {canCreateRoom ? (
                 <button
                   type="button"
-                  aria-label="add channel"
+                  aria-label="add room"
                   onClick={() => setCreateRoomOpen(true)}
                   className={ICON_BTN_CLS}
                 >
@@ -87,6 +100,15 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
           {roomList.map((r) => (
             <RoomRow key={r.roomId} room={r} />
           ))}
+          {canBrowse && roomList.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => navigate("/browse")}
+              className="w-full rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              Browse rooms…
+            </button>
+          ) : null}
         </Section>
         <Section
           title="DMs"

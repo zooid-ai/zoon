@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { MatrixClientPeg } from "./client/peg";
 import { AuthCallback } from "./components/auth/auth-callback";
 import { Login } from "./components/auth/login";
+import { BrowseRoomsRoute } from "./components/structures/browse-rooms";
 import { EmptyRoom } from "./components/structures/empty-room";
 import { LoggedInView } from "./components/structures/logged-in-view";
 import { RoomView } from "./components/structures/room-view";
@@ -108,6 +109,7 @@ function AppRoutes({ config }: { config: AppConfig }) {
       >
         <Route index element={<EmptyRoom />} />
         <Route path="room/:roomId" element={<RoomView />} />
+        <Route path="browse" element={<BrowseRoomsRoute />} />
       </Route>
       <Route
         path="/login"

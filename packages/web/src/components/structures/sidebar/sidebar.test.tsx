@@ -153,24 +153,24 @@ describe("<Sidebar>", () => {
 });
 
 describe("<Sidebar> action affordances", () => {
-  it("renders the Add Channel button on the Rooms section header when PL allows", async () => {
+  it("renders the Add Room button on the Rooms section header when PL allows", async () => {
     seed({ myPL: 100 });
     render(
       <MemoryRouter>
         <Sidebar scope={{ kind: "space", spaceId }} workforceSpaceId={spaceId} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("button", { name: /add channel/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /add room/i })).toBeInTheDocument();
   });
 
-  it("hides Add Channel when the user lacks state-event PL", async () => {
+  it("hides Add Room when the user lacks state-event PL", async () => {
     seed({ myPL: 0 });
     render(
       <MemoryRouter>
         <Sidebar scope={{ kind: "space", spaceId }} workforceSpaceId={spaceId} />
       </MemoryRouter>,
     );
-    expect(screen.queryByRole("button", { name: /add channel/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add room/i })).not.toBeInTheDocument();
   });
 
   it("renders the Start DM button on the DMs section header", async () => {
@@ -183,7 +183,7 @@ describe("<Sidebar> action affordances", () => {
     expect(screen.getByRole("button", { name: /start dm/i })).toBeInTheDocument();
   });
 
-  it("opens the create-room dialog on Add Channel click", async () => {
+  it("opens the create-room dialog on Add Room click", async () => {
     seed({ myPL: 100 });
     const user = userEvent.setup();
     render(
@@ -191,13 +191,13 @@ describe("<Sidebar> action affordances", () => {
         <Sidebar scope={{ kind: "space", spaceId }} workforceSpaceId={spaceId} />
       </MemoryRouter>,
     );
-    await user.click(screen.getByRole("button", { name: /add channel/i }));
-    expect(await screen.findByRole("dialog", { name: /create channel/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /add room/i }));
+    expect(await screen.findByRole("dialog", { name: /create room/i })).toBeInTheDocument();
   });
 });
 
 describe("<Sidebar> home scope", () => {
-  it("lists all joined non-space rooms in Rooms and hides Add Channel", async () => {
+  it("lists all joined non-space rooms in Rooms and hides Add Room", async () => {
     seed({ myPL: 100 }); // reuse existing seed; gives space + general + dm + fav
     // In Home, the Rooms section is sourced from useRoomList() (all joined rooms),
     // not the space's children. #admins-style orphan: a joined room that is NOT a
@@ -223,8 +223,8 @@ describe("<Sidebar> home scope", () => {
 
     const rooms = screen.getByRole("region", { name: "Rooms" });
     expect(within(rooms).getByText("admins")).toBeInTheDocument(); // orphan now visible
-    // Add Channel is space-only — absent in Home.
-    expect(screen.queryByRole("button", { name: /add channel/i })).not.toBeInTheDocument();
+    // Add Room is space-only — absent in Home.
+    expect(screen.queryByRole("button", { name: /add room/i })).not.toBeInTheDocument();
   });
 
   it("excludes space rooms from the Home Rooms list", () => {
