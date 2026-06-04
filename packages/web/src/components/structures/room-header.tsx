@@ -1,4 +1,4 @@
-import { ChevronDown, Star } from "lucide-react";
+import { ChevronDown, Globe, Lock, Star, Users } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useMatch } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { MatrixClientPeg } from "../../client/peg";
+import { useJoinRule } from "../../hooks/use-join-rule";
 import { useMemberRoles } from "../../hooks/use-member-roles";
 import { useMyPowerLevel } from "../../hooks/use-my-power-level";
 import { useRoomFavorite } from "../../hooks/use-room-favorite";
 import { RenameRoomDialog } from "../dialogs/rename-room";
+import { RoomInfoDialog } from "../dialogs/room-info";
+
+const JOIN_RULE_INDICATOR = {
+  invite: { Icon: Lock, label: "Invite only" },
+  restricted: { Icon: Users, label: "Space members" },
+  public: { Icon: Globe, label: "Anyone can join" },
+} as const;
 
 interface RoomHeaderProps {
   membersOpen?: boolean;
@@ -30,38 +44,54 @@ export function RoomHeader({ membersOpen, onToggleMembers }: RoomHeaderProps) {
   const members = useMemberRoles(roomId ?? "");
   const myPL = useMyPowerLevel(roomId ?? "");
   const { isFavorite, toggle: toggleFavorite } = useRoomFavorite(roomId ?? "");
+  const { rule } = useJoinRule(roomId ?? "");
   const [renameOpen, setRenameOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   if (!roomId || !client) return null;
 
   const room = client.getRoom(roomId);
   const roomName = room?.name ?? roomId;
   const canRename = myPL.canSendStateEvent("m.room.name");
+  const { Icon: RuleIcon, label: ruleLabel } = JOIN_RULE_INDICATOR[rule];
 
   return (
     <>
-      {canRename ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Room actions"
-              className="h-7 max-w-48 gap-1 truncate px-1.5 text-sm font-medium"
-            >
-              <span className="truncate">{roomName}</span>
-              <ChevronDown className="size-3.5 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Room actions"
+            className="h-7 max-w-48 gap-1 truncate px-1.5 text-sm font-medium"
+          >
+            <span className="truncate">{roomName}</span>
+            <ChevronDown className="size-3.5 text-muted-foreground" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onSelect={() => setInfoOpen(true)}>Room Info</DropdownMenuItem>
+          {canRename && (
             <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
               Rename room
             </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        <span className="text-sm font-medium truncate max-w-48">{roomName}</span>
-      )}
+          )}
+          <DropdownMenuItem onSelect={() => setInfoOpen(true)}>Leave room</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              aria-label={ruleLabel}
+              className="flex size-5 items-center justify-center text-muted-foreground"
+            >
+              <RuleIcon className="size-3.5" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{ruleLabel}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <Button
         variant="ghost"
         size="icon"
@@ -94,6 +124,7 @@ export function RoomHeader({ membersOpen, onToggleMembers }: RoomHeaderProps) {
         currentName={roomName}
         onOpenChange={setRenameOpen}
       />
+      <RoomInfoDialog open={infoOpen} roomId={roomId} onOpenChange={setInfoOpen} />
     </>
   );
 }

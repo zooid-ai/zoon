@@ -1,3 +1,5 @@
+import { Ban, DoorOpen, X } from "lucide-react";
+import { useState } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 import { MatrixClientPeg } from "../../client/peg";
 import { useMemberRoles } from "../../hooks/use-member-roles";
@@ -8,19 +10,62 @@ import { useUserName } from "../../hooks/use-user-name";
 import { type Role, roleForLevel, roleLabel, standardRoleOptions } from "../../lib/roles";
 import { Button } from "../ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { Input } from "../ui/input";
 
-export function MemberRow({ roomId, userId }: { roomId: string; userId: string }) {
+export function MemberRow({
+  roomId,
+  userId,
+  membership = "join",
+}: {
+  roomId: string;
+  userId: string;
+  membership?: "join" | "invite";
+}) {
   const { presence } = usePresence(userId);
   const name = useUserName(userId, roomId);
   const roles = useMemberRoles(roomId);
   const myPL = useMyPowerLevel(roomId);
   const me = MatrixClientPeg.safeGet()?.getUserId();
+
+  if (membership === "invite") {
+    const onCancel = async () => {
+      try {
+        await MatrixClientPeg.safeGet()?.kick(roomId, userId);
+      } catch {
+        // Server rejection: the pending list reflects the unchanged state.
+      }
+    };
+    return (
+      <>
+        <UserAvatar userId={userId} size="sm" presence={presence} />
+        <span className="text-sm truncate flex-1">{name}</span>
+        {myPL.canKick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Cancel invite"
+            className="size-6 text-muted-foreground hover:text-foreground"
+            onClick={() => void onCancel()}
+          >
+            <X className="size-3.5" />
+          </Button>
+        )}
+      </>
+    );
+  }
 
   const entry = roles.find((r) => r.userId === userId);
   const role = entry?.role ?? roleForLevel(0);
@@ -30,6 +75,7 @@ export function MemberRow({ roomId, userId }: { roomId: string; userId: string }
   // Self is editable (self-demote) regardless of own level.
   const targetLevel = entry?.powerLevel ?? 0;
   const editable = canEditRoles && (userId === me ? true : targetLevel < myPL.level);
+  const isSelf = userId === me;
 
   return (
     <>
@@ -40,7 +86,113 @@ export function MemberRow({ roomId, userId }: { roomId: string; userId: string }
       ) : (
         <span className="text-xs text-muted-foreground">{roleLabel(role)}</span>
       )}
+      {!isSelf && (myPL.canKick || myPL.canBan) && (
+        <ModerationControls roomId={roomId} userId={userId} canKick={myPL.canKick} canBan={myPL.canBan} />
+      )}
     </>
+  );
+}
+
+function ModerationControls({
+  roomId,
+  userId,
+  canKick,
+  canBan,
+}: {
+  roomId: string;
+  userId: string;
+  canKick: boolean;
+  canBan: boolean;
+}) {
+  const [dialog, setDialog] = useState<"kick" | "ban" | null>(null);
+
+  const onConfirm = async (reason: string) => {
+    const client = MatrixClientPeg.safeGet();
+    if (!client) return;
+    try {
+      if (dialog === "kick") await client.kick(roomId, userId, reason || undefined);
+      else if (dialog === "ban") await client.ban(roomId, userId, reason || undefined);
+    } catch {
+      // Server rejection: membership list reflects the unchanged state.
+    }
+  };
+
+  return (
+    <>
+      {canKick && (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Kick"
+          className="size-6 text-muted-foreground hover:text-destructive"
+          onClick={() => setDialog("kick")}
+        >
+          <DoorOpen className="size-3.5" />
+        </Button>
+      )}
+      {canBan && (
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Ban"
+          className="size-6 text-muted-foreground hover:text-destructive"
+          onClick={() => setDialog("ban")}
+        >
+          <Ban className="size-3.5" />
+        </Button>
+      )}
+      <ModerationDialog
+        kind={dialog ?? "kick"}
+        open={dialog !== null}
+        onOpenChange={(o) => !o && setDialog(null)}
+        onConfirm={onConfirm}
+      />
+    </>
+  );
+}
+
+function ModerationDialog({
+  kind,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  kind: "kick" | "ban";
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const label = kind === "kick" ? "Kick" : "Ban";
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{label} member</DialogTitle>
+        </DialogHeader>
+        <Input
+          placeholder="Reason (optional)"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              onConfirm(reason);
+              setReason("");
+              onOpenChange(false);
+            }}
+          >
+            {label}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

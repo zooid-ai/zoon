@@ -1,15 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { injectStateEvent, makeFakeClient, makeRoom, mkMatrixEvent } from "../../../test/factories";
 import { MatrixClientPeg } from "../../client/peg";
 import { MemberPanel } from "./member-panel";
 
 const me = "@me:h.example";
 const roomId = "!r:h.example";
-afterEach(() => MatrixClientPeg.reset());
+afterEach(() => {
+  MatrixClientPeg.reset();
+  vi.restoreAllMocks();
+});
 
-function setup(powerLevels: Record<string, number>) {
+interface PendingInvitee {
+  userId: string;
+  name: string;
+}
+
+function setupWithPending(powerLevels: Record<string, number>, pending: PendingInvitee[]) {
   const client = makeFakeClient({ userId: me });
   const room = makeRoom(roomId, { client, myUserId: me, powerLevels });
   injectStateEvent(
@@ -19,7 +27,7 @@ function setup(powerLevels: Record<string, number>) {
       sender: "@admin:h.example",
       type: "m.room.power_levels",
       stateKey: "",
-      content: { users: powerLevels, invite: 50, state_default: 50, events_default: 0 },
+      content: { users: powerLevels, invite: 50, kick: 50, state_default: 50, events_default: 0 },
     }),
   );
   const members = Object.keys(powerLevels).map((userId) => ({
@@ -27,11 +35,22 @@ function setup(powerLevels: Record<string, number>) {
     name: userId,
     membership: "join",
   }));
-  (room as unknown as { getJoinedMembers: () => unknown[] }).getJoinedMembers = () => members;
-  (client as unknown as { getRoom: (id: string) => unknown }).getRoom = (id) =>
-    id === roomId ? room : null;
-  (client as unknown as { getUser: () => unknown }).getUser = () => null;
+  const kick = vi.fn().mockResolvedValue(undefined);
+  Object.assign(room as unknown as Record<string, unknown>, {
+    getJoinedMembers: () => members,
+    getMembersWithMembership: (m: string) => (m === "invite" ? pending : []),
+  });
+  Object.assign(client as unknown as Record<string, unknown>, {
+    kick,
+    getRoom: (id: string) => (id === roomId ? room : null),
+    getUser: () => null,
+  });
   MatrixClientPeg.injectClientForTest(client);
+  return { kick };
+}
+
+function setup(powerLevels: Record<string, number>) {
+  setupWithPending(powerLevels, []);
 }
 
 describe("<MemberPanel> invite affordance", () => {
@@ -53,6 +72,27 @@ describe("<MemberPanel> invite affordance", () => {
     render(<MemberPanel roomId={roomId} spaceId="!space:h.example" />);
     await user.click(screen.getByRole("button", { name: /invite/i }));
     expect(await screen.findByRole("dialog", { name: /invite to room/i })).toBeInTheDocument();
+  });
+});
+
+describe("<MemberPanel> pending tab", () => {
+  it("shows Members and Pending tabs; Pending lists invitees with Cancel invite", async () => {
+    const { kick } = setupWithPending({ [me]: 100 }, [{ userId: "@bob:h.example", name: "bob" }]);
+    const user = userEvent.setup();
+    render(<MemberPanel roomId={roomId} spaceId="!space:h.example" />);
+
+    // Members tab is default and shows joined roles.
+    expect(screen.getByRole("tab", { name: /members/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /pending/i }));
+    expect(screen.getByText("bob")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /cancel invite/i }));
+    expect(kick).toHaveBeenCalledWith(roomId, "@bob:h.example");
+  });
+
+  it("omits the Pending tab when there are no pending invites", () => {
+    setupWithPending({ [me]: 100 }, []);
+    render(<MemberPanel roomId={roomId} spaceId="!space:h.example" />);
+    expect(screen.queryByRole("tab", { name: /pending/i })).toBeNull();
   });
 });
 

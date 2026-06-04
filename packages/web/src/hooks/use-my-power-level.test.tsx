@@ -108,4 +108,37 @@ describe("useMyPowerLevel", () => {
     expect(result.current.canSendEvent("eco.zoon.workspace")).toBe(false);
     expect(result.current.canSendEvent("eco.zoon.approval_response")).toBe(true);
   });
+
+  it("exposes canKick / canBan from the kick/ban thresholds", () => {
+    const client = makeFakeClient({ userId: me });
+    const room = makeRoom(roomId, { client, myUserId: me, powerLevels: { [me]: 50 } });
+    injectStateEvent(
+      room,
+      mkMatrixEvent({
+        roomId,
+        sender: "@admin:h.example",
+        type: EventType.RoomPowerLevels,
+        stateKey: "",
+        content: { users: { [me]: 50 }, kick: 50, ban: 75 },
+      }),
+    );
+    (client as unknown as { getRoom: () => unknown }).getRoom = () => room;
+    MatrixClientPeg.injectClientForTest(client);
+
+    const { result } = renderHook(() => useMyPowerLevel(roomId));
+    expect(result.current.canKick).toBe(true); // 50 >= 50
+    expect(result.current.canBan).toBe(false); // 50 < 75
+  });
+
+  it("defaults kick/ban thresholds to 50 when absent", () => {
+    const client = makeFakeClient({ userId: me });
+    const room = makeRoom(roomId, { client, myUserId: me, powerLevels: { [me]: 50 } });
+    // makeRoom seeds power_levels without kick/ban → defaults apply.
+    (client as unknown as { getRoom: () => unknown }).getRoom = () => room;
+    MatrixClientPeg.injectClientForTest(client);
+
+    const { result } = renderHook(() => useMyPowerLevel(roomId));
+    expect(result.current.canKick).toBe(true);
+    expect(result.current.canBan).toBe(true);
+  });
 });

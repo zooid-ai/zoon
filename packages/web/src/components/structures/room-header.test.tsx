@@ -83,6 +83,80 @@ describe("<RoomHeader> favorite star", () => {
   });
 });
 
+function setupRoom(opts: { myLevel: number; joinRule?: string }) {
+  const client = makeFakeClient({ userId: me });
+  const room = makeRoom(roomId, { client, myUserId: me, powerLevels: { [me]: opts.myLevel } });
+  injectStateEvent(
+    room,
+    mkMatrixEvent({
+      roomId,
+      sender: "@admin:h.example",
+      type: "m.room.power_levels",
+      stateKey: "",
+      content: { users: { [me]: opts.myLevel }, invite: 50, state_default: 50, events_default: 0 },
+    }),
+  );
+  if (opts.joinRule) {
+    injectStateEvent(
+      room,
+      mkMatrixEvent({
+        roomId,
+        sender: "@admin:h.example",
+        type: "m.room.join_rules",
+        stateKey: "",
+        content: { join_rule: opts.joinRule },
+      }),
+    );
+  }
+  const members = [{ userId: me, name: "me", membership: "join" }];
+  Object.assign(room as unknown as Record<string, unknown>, {
+    getJoinedMembers: () => members,
+    name: "Design",
+    getJoinedMemberCount: () => 1,
+  });
+  (client as unknown as { getRoom: (id: string) => unknown }).getRoom = (id) =>
+    id === roomId ? room : null;
+  (client as unknown as { getUser: (id: string) => unknown }).getUser = () => null;
+  MatrixClientPeg.injectClientForTest(client);
+  return room;
+}
+
+function renderHeader() {
+  render(
+    <MemoryRouter initialEntries={[`/room/${roomId}`]}>
+      <Routes>
+        <Route path="/room/:roomId" element={<RoomHeader />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe("<RoomHeader> room actions menu", () => {
+  it("renders the room-name dropdown even when the user cannot rename", async () => {
+    setupRoom({ myLevel: 0 });
+    const user = userEvent.setup();
+    renderHeader();
+    await user.click(screen.getByRole("button", { name: /room actions/i }));
+    expect(screen.getByRole("menuitem", { name: /room info/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /leave room/i })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /rename room/i })).toBeNull();
+  });
+
+  it("shows the rename item when the user can rename", async () => {
+    setupRoom({ myLevel: 100 });
+    const user = userEvent.setup();
+    renderHeader();
+    await user.click(screen.getByRole("button", { name: /room actions/i }));
+    expect(screen.getByRole("menuitem", { name: /rename room/i })).toBeInTheDocument();
+  });
+
+  it("renders a join-rule indicator reflecting the rule", () => {
+    setupRoom({ myLevel: 0, joinRule: "public" });
+    renderHeader();
+    expect(screen.getByLabelText(/anyone can join/i)).toBeInTheDocument();
+  });
+});
+
 describe("<RoomHeader> members toggle", () => {
   it("calls onToggleMembers when the member count is clicked", async () => {
     setup(50);
