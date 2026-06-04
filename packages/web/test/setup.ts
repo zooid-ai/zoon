@@ -136,3 +136,52 @@ export function stubSyncWithRooms(homeserverUrl: string, rooms: StubRoom[]): voi
     }),
   );
 }
+
+export interface StubInvite {
+  roomId: string;
+  name?: string;
+  /** The user being invited (state_key on the m.room.member event). */
+  myUserId: string;
+  /** Who sent the invite (sender of the m.room.member event). */
+  inviter: string;
+  /** origin_server_ts of the invite member event. Defaults to a stable value. */
+  ts?: number;
+}
+
+// Sibling of stubSyncWithRooms for the invite path: places each room under
+// `rooms.invite` with stripped invite_state — an `m.room.name` and the
+// `m.room.member` (membership: "invite") for the invited user. matrix-js-sdk
+// surfaces these as rooms with getMyMembership() === "invite".
+export function stubSyncWithInvites(homeserverUrl: string, invites: StubInvite[]): void {
+  const invite: Record<string, unknown> = {};
+  for (const i of invites) {
+    const events: Array<Record<string, unknown>> = [
+      {
+        type: "m.room.member",
+        sender: i.inviter,
+        state_key: i.myUserId,
+        content: { membership: "invite" },
+        origin_server_ts: i.ts ?? 1,
+        event_id: `$inv_${i.roomId}`,
+      },
+    ];
+    if (i.name !== undefined) {
+      events.push({
+        type: "m.room.name",
+        sender: i.inviter,
+        state_key: "",
+        content: { name: i.name },
+        origin_server_ts: i.ts ?? 1,
+        event_id: `$invname_${i.roomId}`,
+      });
+    }
+    invite[i.roomId] = { invite_state: { events } };
+  }
+  mswServer.use(
+    http.get(`${homeserverUrl}/_matrix/client/v3/sync`, ({ request }) => {
+      const url = new URL(request.url);
+      if (url.searchParams.get("since")) return new Promise(() => {});
+      return HttpResponse.json({ next_batch: "s1", rooms: { join: {}, invite, leave: {} } });
+    }),
+  );
+}

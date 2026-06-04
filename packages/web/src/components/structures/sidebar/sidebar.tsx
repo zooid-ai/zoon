@@ -12,6 +12,7 @@ import { useSpaceChildren } from "../../../hooks/use-space-children";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateDmDialog } from "../../dialogs/create-dm";
 import { CreateRoomDialog } from "../../dialogs/create-room";
+import { InvitesSection } from "./invites-section";
 import { RoomRow } from "./room-row";
 import type { Scope } from "./scope";
 import { Section } from "./section";
@@ -62,6 +63,7 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-2 p-2">
+        <InvitesSection />
         <Section
           title="Favorites"
           action={<UnreadBadge total={favUnread.total} highlight={favUnread.highlight} />}
