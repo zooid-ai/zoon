@@ -28,6 +28,24 @@ describe("<App />", () => {
     expect(await screen.findByLabelText(/username/i)).toBeInTheDocument();
   });
 
+  it("keeps a logged-out user on /signup instead of bouncing to /login", async () => {
+    mswServer.use(
+      http.post(`${HS}/_matrix/client/v3/register`, () =>
+        HttpResponse.json(
+          { session: "s1", flows: [{ stages: ["m.login.dummy"] }], params: {} },
+          { status: 401 },
+        ),
+      ),
+    );
+    render(<App config={{ homeserverUrl: HS }} initialRoute="/signup" />);
+    // The <Register> screen's submit button — proves we landed on /signup …
+    expect(
+      await screen.findByRole("button", { name: /create account/i }),
+    ).toBeInTheDocument();
+    // … and the redirect effect did NOT bounce us to <Login> (its "Sign in" button).
+    expect(screen.queryByRole("button", { name: /^sign in$/i })).toBeNull();
+  });
+
   it("restores the session from storage and renders <LoggedInView />", async () => {
     localStorage.setItem(
       "zoon:session",

@@ -5,6 +5,7 @@ import {
   Navigate,
   Route,
   Routes,
+  useLocation,
   useNavigate,
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
@@ -93,15 +94,18 @@ export function App({
 function AppRoutes({ config }: { config: AppConfig }) {
   const auth = useAuthState();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   // Auth state changes outside the router (e.g. logout button) need to drive
   // routing back to /login. The router itself is stateless on this signal so
-  // we synchronise here.
+  // we synchronise here. Paths a logged-out user is meant to sit on — the SSO
+  // callback and the sign-up screen — are excluded, else they'd be bounced to
+  // /login on load/reload before they could complete.
   useEffect(() => {
-    if (auth === "logged-out" && window.location.pathname !== "/auth/callback") {
+    if (auth === "logged-out" && pathname !== "/auth/callback" && pathname !== "/signup") {
       navigate("/login", { replace: true });
     }
-  }, [auth, navigate]);
+  }, [auth, navigate, pathname]);
 
   return (
     <Routes>
