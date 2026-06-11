@@ -9,7 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ProfileSettingsDialog } from "@/components/settings/profile-settings-dialog";
+import { SettingsDialog } from "@/components/settings/settings-dialog";
+import { useNotifications } from "@/hooks/use-notifications";
 import {
   Sidebar,
   SidebarContent,
@@ -42,7 +43,8 @@ export function LoggedInView() {
   const { spaceId } = useActiveSpaceId(spaceLocalpart, serverName);
   const [scope, setScope] = useState<Scope | null>(null);
   const [membersOpen, setMembersOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  useNotifications();
   const roomMatch = useMatch("/room/:roomId");
   const roomId = roomMatch?.params.roomId ?? null;
 
@@ -90,7 +92,7 @@ export function LoggedInView() {
                 {userId}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
+              <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -100,7 +102,7 @@ export function LoggedInView() {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <ProfileSettingsDialog open={profileOpen} onOpenChange={setProfileOpen} />
+        <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
         <main className="flex-1 min-h-0 overflow-hidden">
           <div className="flex h-full min-h-0">
             <div className="min-w-0 flex-1 overflow-hidden">

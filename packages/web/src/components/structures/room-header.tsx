@@ -1,4 +1,4 @@
-import { ChevronDown, Globe, Lock, Star, Users } from "lucide-react";
+import { BellOff, ChevronDown, Globe, Lock, Star, Users } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useMatch } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -19,6 +25,8 @@ import { useJoinRule } from "../../hooks/use-join-rule";
 import { useMemberRoles } from "../../hooks/use-member-roles";
 import { useMyPowerLevel } from "../../hooks/use-my-power-level";
 import { useRoomFavorite } from "../../hooks/use-room-favorite";
+import { useRoomNotifState } from "../../hooks/use-room-notif-state";
+import type { RoomNotifState } from "../../lib/matrix/notification-prefs";
 import { RenameRoomDialog } from "../dialogs/rename-room";
 import { RoomInfoDialog } from "../dialogs/room-info";
 
@@ -45,6 +53,7 @@ export function RoomHeader({ membersOpen, onToggleMembers }: RoomHeaderProps) {
   const myPL = useMyPowerLevel(roomId ?? "");
   const { isFavorite, toggle: toggleFavorite } = useRoomFavorite(roomId ?? "");
   const { rule } = useJoinRule(roomId ?? "");
+  const { state: notifState, setState: setNotifState } = useRoomNotifState(roomId ?? "");
   const [renameOpen, setRenameOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
 
@@ -71,6 +80,22 @@ export function RoomHeader({ membersOpen, onToggleMembers }: RoomHeaderProps) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onSelect={() => setInfoOpen(true)}>Room Info</DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Notifications</DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup
+                value={notifState}
+                onValueChange={(v) => void setNotifState(v as RoomNotifState)}
+              >
+                <DropdownMenuRadioItem value="all">All messages</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="mentions">
+                  Mentions &amp; keywords
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="mute">Mute</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
           {canRename && (
             <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
               Rename room
@@ -92,6 +117,14 @@ export function RoomHeader({ membersOpen, onToggleMembers }: RoomHeaderProps) {
           <TooltipContent>{ruleLabel}</TooltipContent>
         </Tooltip>
       </TooltipProvider>
+      {notifState === "mute" && (
+        <span
+          aria-label="Muted"
+          className="flex size-5 items-center justify-center text-muted-foreground"
+        >
+          <BellOff className="size-3.5" />
+        </span>
+      )}
       <Button
         variant="ghost"
         size="icon"
