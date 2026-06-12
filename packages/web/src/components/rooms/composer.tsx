@@ -412,7 +412,7 @@ export function Composer({ roomId, threadRootEventId, onExitThread }: ComposerPr
           type="button"
           aria-label="Attach file"
           onClick={() => attachInputRef.current?.click()}
-          className="shrink-0 self-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="ml-1 shrink-0 self-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <Paperclip className="h-4 w-4" />
         </button>
