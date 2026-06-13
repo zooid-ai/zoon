@@ -6,7 +6,6 @@ import {
   FileEdit,
   FileSearch,
   Globe,
-  ListChecks,
   Loader2,
   Terminal,
   X,
@@ -51,7 +50,10 @@ export function EcoZoonEventTile({ decoded, sender, roomId, ts }: Props) {
       return null;
 
     case "plan":
-      return <PlanCard decoded={decoded} />;
+      // The live plan renders in the PlanBoard panel (usePlan); the timeline
+      // only notes that an update happened, so progress reads as one mutating
+      // checklist instead of a stack of snapshots.
+      return <Divider text="updated plan" />;
   }
 }
 
@@ -253,47 +255,3 @@ function safeStringify(v: unknown): string {
   }
 }
 
-function PlanCard({
-  decoded,
-}: {
-  decoded: Extract<DecodedEcoZoonEvent, { kind: "plan" }>;
-}) {
-  return (
-    <div className="my-1 rounded-md border border-border bg-muted/30 px-2.5 py-2">
-      <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <ListChecks className="h-3.5 w-3.5" />
-        Plan
-      </div>
-      <ul className="space-y-0.5 text-sm">
-        {decoded.entries.map((e) => (
-          <li key={e.id} className="flex items-start gap-2">
-            <span className={statusBullet(e.status)} aria-label={e.status} />
-            <span
-              className={
-                e.status === "completed"
-                  ? "line-through text-muted-foreground"
-                  : "text-foreground"
-              }
-            >
-              {e.title}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function statusBullet(status: string) {
-  const base = "mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ";
-  switch (status) {
-    case "completed":
-      return base + "bg-emerald-500";
-    case "in_progress":
-      return base + "bg-amber-500 animate-pulse";
-    case "failed":
-      return base + "bg-destructive";
-    default:
-      return base + "bg-muted-foreground/40";
-  }
-}

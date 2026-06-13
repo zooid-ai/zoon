@@ -1,5 +1,41 @@
 import type { MatrixEvent } from "matrix-js-sdk";
 
+export interface PlanBoardEntry {
+  content: string;
+  status: string;
+  priority?: string;
+}
+
+/**
+ * Normalize the `rawInput` of a planning tool call into board entries.
+ * Claude `TodoWrite` / opencode `todowrite`: { todos: [{content,status,priority?}] }.
+ * Codex `update_plan`: { plan: [{step,status}] }. Returns null when the input
+ * is not a recognized planning payload.
+ */
+export function planEntriesFromToolInput(input: unknown): PlanBoardEntry[] | null {
+  if (!input || typeof input !== "object") return null;
+  const r = input as Record<string, unknown>;
+  if (Array.isArray(r.todos)) {
+    const entries = r.todos
+      .filter((t): t is Record<string, unknown> => !!t && typeof t === "object")
+      .filter((t) => typeof t.content === "string" && typeof t.status === "string")
+      .map((t) => ({
+        content: t.content as string,
+        status: t.status as string,
+        ...(typeof t.priority === "string" ? { priority: t.priority } : {}),
+      }));
+    return entries.length > 0 ? entries : null;
+  }
+  if (Array.isArray(r.plan)) {
+    const entries = r.plan
+      .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
+      .filter((p) => typeof p.step === "string" && typeof p.status === "string")
+      .map((p) => ({ content: p.step as string, status: p.status as string }));
+    return entries.length > 0 ? entries : null;
+  }
+  return null;
+}
+
 export const EcoZoonEventType = {
   SessionStart: "eco.zoon.session.start",
   TurnStart: "eco.zoon.turn.start",
@@ -41,7 +77,7 @@ export type DecodedEcoZoonEvent =
   | {
       kind: "plan";
       sessionId: string;
-      entries: Array<{ id: string; title: string; status: string }>;
+      entries: PlanBoardEntry[];
     }
   | { kind: "turn.end"; sessionId: string; stopReason?: string }
   | {
@@ -149,15 +185,14 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
         .map((e) => {
           if (!e || typeof e !== "object") return null;
           const r = e as Record<string, unknown>;
-          if (
-            typeof r.id !== "string" ||
-            typeof r.title !== "string" ||
-            typeof r.status !== "string"
-          )
-            return null;
-          return { id: r.id, title: r.title, status: r.status };
+          if (typeof r.content !== "string" || typeof r.status !== "string") return null;
+          return {
+            content: r.content,
+            status: r.status,
+            ...(typeof r.priority === "string" ? { priority: r.priority } : {}),
+          } satisfies PlanBoardEntry;
         })
-        .filter((e): e is { id: string; title: string; status: string } => e !== null);
+        .filter((e): e is PlanBoardEntry => e !== null);
       return { kind: "plan", sessionId, entries };
     }
 

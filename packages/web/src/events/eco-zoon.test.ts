@@ -7,6 +7,7 @@ import {
   isAgentMessageChunk,
   isToolCall,
   isTurnEnd,
+  planEntriesFromToolInput,
 } from "./eco-zoon";
 
 
@@ -92,13 +93,13 @@ describe("decodeEcoZoonEvent", () => {
       type: EcoZoonEventType.Plan,
       content: {
         session_id: "s1",
-        entries: [{ id: "p1", title: "do the thing", status: "pending" }],
+        entries: [{ content: "do the thing", status: "pending" }],
       },
     });
     expect(decodeEcoZoonEvent(ev)).toMatchObject({
       kind: "plan",
       sessionId: "s1",
-      entries: [{ id: "p1", title: "do the thing", status: "pending" }],
+      entries: [{ content: "do the thing", status: "pending" }],
     });
   });
 
@@ -144,6 +145,92 @@ describe("decodeEcoZoonEvent", () => {
       content: { session_id: "s1" },
     });
     expect(decodeEcoZoonEvent(ev)).toBeNull();
+  });
+});
+
+describe("decodeEcoZoonEvent — plan (ACP PlanEntry shape)", () => {
+  it("decodes entries by content/priority/status (not id/title)", () => {
+    const ev = mkMatrixEvent({
+      roomId: room,
+      sender,
+      type: EcoZoonEventType.Plan,
+      content: {
+        session_id: "s1",
+        entries: [
+          { content: "Add bananas", priority: "high", status: "pending" },
+          { content: "Add bread", priority: "medium", status: "in_progress" },
+        ],
+      },
+    });
+    expect(decodeEcoZoonEvent(ev)).toEqual({
+      kind: "plan",
+      sessionId: "s1",
+      entries: [
+        { content: "Add bananas", priority: "high", status: "pending" },
+        { content: "Add bread", priority: "medium", status: "in_progress" },
+      ],
+    });
+  });
+
+  it("keeps entries even when priority is absent (Claude/Codex don't send it)", () => {
+    const ev = mkMatrixEvent({
+      roomId: room,
+      sender,
+      type: EcoZoonEventType.Plan,
+      content: { session_id: "s1", entries: [{ content: "Do thing", status: "completed" }] },
+    });
+    expect(decodeEcoZoonEvent(ev)).toEqual({
+      kind: "plan",
+      sessionId: "s1",
+      entries: [{ content: "Do thing", status: "completed" }],
+    });
+  });
+
+  it("drops entries missing content or status", () => {
+    const ev = mkMatrixEvent({
+      roomId: room,
+      sender,
+      type: EcoZoonEventType.Plan,
+      content: { session_id: "s1", entries: [{ priority: "low" }, { content: "ok", status: "pending" }] },
+    });
+    const decoded = decodeEcoZoonEvent(ev);
+    expect(decoded).toMatchObject({ kind: "plan", entries: [{ content: "ok", status: "pending" }] });
+  });
+});
+
+describe("planEntriesFromToolInput — fallback for shims that don't emit `plan`", () => {
+  it("maps Claude/opencode TodoWrite { todos: [{content, status, priority?}] }", () => {
+    expect(
+      planEntriesFromToolInput({
+        todos: [
+          { content: "Add bananas", status: "completed", priority: "high" },
+          { content: "Add milk", status: "pending" },
+        ],
+      }),
+    ).toEqual([
+      { content: "Add bananas", status: "completed", priority: "high" },
+      { content: "Add milk", status: "pending" },
+    ]);
+  });
+
+  it("maps Codex update_plan { plan: [{step, status}] } (step → content)", () => {
+    expect(
+      planEntriesFromToolInput({
+        explanation: "grocery run",
+        plan: [
+          { step: "Add bananas", status: "in_progress" },
+          { step: "Add bread", status: "pending" },
+        ],
+      }),
+    ).toEqual([
+      { content: "Add bananas", status: "in_progress" },
+      { content: "Add bread", status: "pending" },
+    ]);
+  });
+
+  it("returns null for non-planning tool input", () => {
+    expect(planEntriesFromToolInput({ command: "ls" })).toBeNull();
+    expect(planEntriesFromToolInput(undefined)).toBeNull();
   });
 });
 

@@ -90,7 +90,7 @@ function ensureRootFetched(client: MatrixClient, roomId: string, eventId: string
     });
 }
 
-function allRoomEvents(room: Room): MatrixEvent[] {
+export function allRoomEvents(room: Room): MatrixEvent[] {
   // getLiveTimeline() only covers the current window. After a limited sync,
   // older events live in historical timelines within the same set.
   const timelineSet = room.getUnfilteredTimelineSet();
@@ -255,7 +255,7 @@ function snapshotThreadFull(roomId: string, rootEventId: string): ThreadFullStat
   return state;
 }
 
-function makeSubscribe(roomId: string) {
+export function makeSubscribe(roomId: string) {
   return (cb: () => void) => {
     const client = MatrixClientPeg.safeGet();
     if (!client) return MatrixClientPeg.subscribe(cb);

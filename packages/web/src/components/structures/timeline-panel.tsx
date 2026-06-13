@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useTimeline } from "../../hooks/use-timeline";
 import { useLoadMoreHistory } from "../../hooks/use-load-more-history";
+import { usePlan } from "../../hooks/use-plan";
 import { LoadMoreButton } from "../timeline/load-more-button";
+import { PlanBoard } from "../timeline/plan-board";
 import { MessagePanel } from "./message-panel";
 
 const PREFETCH_THRESHOLD = 5;
@@ -17,6 +19,7 @@ export function TimelinePanel({
 }) {
   const { events, pendingRootIds } = useTimeline(roomId);
   const { loadMore, loading, hasMore } = useLoadMoreHistory(roomId);
+  const plan = usePlan(roomId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const prefetchedRef = useRef<string | null>(null);
@@ -48,6 +51,7 @@ export function TimelinePanel({
 
   return (
     <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto">
+      {plan && <div className="px-3 pt-2"><PlanBoard plan={plan} /></div>}
       {events.length > 0 && (
         <LoadMoreButton loading={loading} hasMore={hasMore} onClick={loadMore} />
       )}
