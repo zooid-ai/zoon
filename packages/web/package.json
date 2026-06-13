@@ -1,11 +1,13 @@
 {
-  "name": "@zoon/web",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@zooid/zoon-web",
+  "version": "0.1.0",
   "type": "module",
+  "files": ["dist"],
+  "publishConfig": { "access": "public" },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
