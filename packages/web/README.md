@@ -12,7 +12,14 @@ You don't need to install this package directly unless you're hosting the web cl
 
 ## Development
 
-Clone the [`z` monorepo](https://github.com/oripitch/z) and work from the `zoon/packages/web` source:
+Clone `zooid` and `zoon` as siblings in the same parent directory:
+
+```bash
+git clone https://github.com/zooid-ai/zooid
+git clone https://github.com/zooid-ai/zoon
+```
+
+Then work from `zoon/packages/web`:
 
 ```bash
 # dev server (Vite HMR)
@@ -24,6 +31,8 @@ pnpm -C zoon/packages/web build
 # run alongside zooid (live rebuild + serve)
 zooid dev --watch-web
 ```
+
+`zooid dev --watch-web` auto-detects the sibling `zoon/packages/web` directory and serves it directly — no registry fetch needed during development.
 
 ## License
 
