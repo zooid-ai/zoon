@@ -5,6 +5,7 @@ import { ApprovalCard } from "./approval-card";
 import { EcoZoonEventTile } from "./eco-zoon-event";
 import { ErrorTile } from "./error-tile";
 import { MediaMessage } from "./media-message";
+import { MembershipEvent } from "./membership-event";
 import { TextMessage } from "./text-message";
 
 const MEDIA_MSGTYPES = new Set(["m.image", "m.file", "m.video", "m.audio"]);
@@ -46,6 +47,9 @@ export function EventTile({
         <div className="h-px flex-1 bg-border" />
       </div>
     );
+  }
+  if (event.getType() === "m.room.member") {
+    return <MembershipEvent event={event} />;
   }
   if (isEcoZoonLifecycle(event)) {
     const decoded = decodeEcoZoonEvent(event);

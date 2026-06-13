@@ -33,6 +33,69 @@ function mediaEvent(content: Record<string, unknown>) {
   } as never;
 }
 
+function memberEvent(
+  content: Record<string, unknown>,
+  prev: Record<string, unknown>,
+  sender: string,
+  stateKey: string,
+) {
+  return {
+    getType: () => "m.room.member",
+    getContent: () => content,
+    getPrevContent: () => prev,
+    getSender: () => sender,
+    getStateKey: () => stateKey,
+    getRoomId: () => "!a:hs.test",
+    getTs: () => 1_700_000_000_000,
+    getId: () => "$member_evt",
+    getThread: () => null,
+  } as never;
+}
+
+describe("<EventTile /> membership", () => {
+  it("renders an invite decline as a membership line", () => {
+    render(
+      <EventTile
+        event={memberEvent(
+          { membership: "leave" },
+          { membership: "invite" },
+          "@zongshan:hs.test",
+          "@zongshan:hs.test",
+        )}
+      />,
+    );
+    expect(screen.getByText(/declined the invitation/i)).toBeInTheDocument();
+  });
+
+  it("surfaces a leave reason", () => {
+    render(
+      <EventTile
+        event={memberEvent(
+          { membership: "leave", reason: "no ad-hoc invites" },
+          { membership: "invite" },
+          "@zooid:hs.test",
+          "@zooid:hs.test",
+        )}
+      />,
+    );
+    expect(screen.getByText(/no ad-hoc invites/i)).toBeInTheDocument();
+  });
+
+  it("renders nothing for a profile-only change", () => {
+    const { container } = render(
+      <EventTile
+        event={memberEvent(
+          { membership: "join", displayname: "New" },
+          { membership: "join", displayname: "Old" },
+          "@x:hs.test",
+          "@x:hs.test",
+        )}
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
 describe("<EventTile /> media routing", () => {
   it("routes m.image messages to MediaMessage instead of TextMessage", () => {
     // MatrixClientPeg needs to return something for useMatrixClient

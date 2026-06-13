@@ -32,7 +32,7 @@ export function MessagePanel({
         </li>
       ))}
       {events.map((ev) => (
-        <li key={ev.getId() ?? `${ev.getType()}-${ev.getTs()}`}>
+        <li key={ev.getId() ?? `${ev.getType()}-${ev.getTs()}`} className="contents">
           <EventTile event={ev} onReplyInThread={onReplyInThread} onViewThread={onViewThread} />
         </li>
       ))}
