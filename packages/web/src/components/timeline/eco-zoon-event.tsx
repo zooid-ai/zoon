@@ -10,11 +10,34 @@ import {
   Terminal,
   X,
 } from "lucide-react";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 import type { DecodedEcoZoonEvent } from "../../events/eco-zoon";
 import { useToolCallApproval, useToolCallStatus } from "@/hooks/use-timeline";
 import { useUserName } from "@/hooks/use-user-name";
 import { UserAvatar } from "@/components/user-avatar";
 import { DiffView } from "./diff-view";
+
+marked.use({ gfm: true, breaks: false });
+
+function looksLikeMarkdown(text: string): boolean {
+  return text.includes("```");
+}
+
+function renderToolOutput(text: string) {
+  if (looksLikeMarkdown(text)) {
+    const html = DOMPurify.sanitize(marked.parse(text) as string);
+    return (
+      <div
+        className="prose prose-sm dark:prose-invert max-w-none min-w-0 prose-pre:my-1 prose-pre:bg-muted prose-pre:text-foreground prose-pre:border prose-pre:border-border prose-code:bg-muted prose-code:text-foreground prose-code:rounded-sm prose-code:px-1 prose-code:font-normal prose-code:before:content-none prose-code:after:content-none"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+  return (
+    <pre className="whitespace-pre-wrap break-words text-foreground/80">{text}</pre>
+  );
+}
 
 interface Props {
   decoded: DecodedEcoZoonEvent;
@@ -222,7 +245,7 @@ function ToolCallCard({
                 );
               }
               return (
-                <pre className="mt-1 max-h-64 overflow-auto rounded-md bg-background/50 p-2 text-xs">
+                <pre className="mt-1 max-h-64 overflow-auto rounded-md border border-border bg-muted p-2 text-xs text-foreground">
                   {safeStringify(effectiveInput)}
                 </pre>
               );
@@ -236,9 +259,9 @@ function ToolCallCard({
             </div>
           )}
           {content && (
-            <div className="mt-1 whitespace-pre-wrap break-words text-foreground/80">
+            <div className="mt-1">
               <span className="text-foreground/70 block mb-0.5">output:</span>
-              {content}
+              {renderToolOutput(content)}
             </div>
           )}
         </div>

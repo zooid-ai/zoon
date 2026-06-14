@@ -143,3 +143,66 @@ export const WithClaudeCodeEdit: Story = {
     return <TimelinePanel roomId={ROOM_ID} />;
   },
 };
+
+function seedBashOutputRoom() {
+  const client = makeFakeClient({ userId: ME });
+  const room = makeRoom(ROOM_ID, { client, myUserId: ME });
+  (client as unknown as { getRoom: (id: string) => unknown }).getRoom = (id: string) =>
+    id === ROOM_ID ? room : null;
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: ME,
+      type: "m.room.message",
+      content: { msgtype: "m.text", body: "delete the test file" },
+    }),
+  );
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: AGENT,
+      type: "eco.zoon.tool_call",
+      content: {
+        session_id: "s1",
+        tool_call_id: "tc3",
+        title: "Terminal",
+        kind: "execute",
+        raw_input: { command: "rm /workspace/test-file.txt", description: "Delete test file" },
+      },
+    }),
+  );
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: AGENT,
+      type: "eco.zoon.tool_call_update",
+      content: {
+        session_id: "s1",
+        tool_call_id: "tc3",
+        status: "completed",
+        content: [
+          {
+            type: "content",
+            content: { type: "text", text: "```console\n(Bash completed with no output)\n```" },
+          },
+        ],
+      },
+    }),
+  );
+
+  MatrixClientPeg.injectClientForTest(client);
+}
+
+export const WithBashMarkdownOutput: Story = {
+  args: { roomId: ROOM_ID },
+  render: () => {
+    seedBashOutputRoom();
+    return <TimelinePanel roomId={ROOM_ID} />;
+  },
+};
