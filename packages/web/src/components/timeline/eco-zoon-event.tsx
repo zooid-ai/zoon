@@ -211,11 +211,23 @@ function ToolCallCard({
               ))}
             </div>
           )}
-          {effectiveInput && Object.keys(effectiveInput).length > 0 && (
-            <pre className="mt-1 max-h-64 overflow-auto rounded-md bg-background/50 p-2 text-xs">
-              {safeStringify(effectiveInput)}
-            </pre>
-          )}
+          {effectiveInput && Object.keys(effectiveInput).length > 0 &&
+            (() => {
+              const rawDiff = extractRawInputDiff(effectiveInput);
+              if (rawDiff) {
+                return (
+                  <div className="space-y-1">
+                    <DiffView diff={rawDiff} />
+                  </div>
+                );
+              }
+              return (
+                <pre className="mt-1 max-h-64 overflow-auto rounded-md bg-background/50 p-2 text-xs">
+                  {safeStringify(effectiveInput)}
+                </pre>
+              );
+            })()
+          }
           {diffs.length > 0 && (
             <div className="space-y-1">
               {diffs.map((d, i) => (
@@ -240,19 +252,35 @@ function shortPath(p: string): string {
   return parts[parts.length - 1] || p;
 }
 
+function resolveFilePath(input: Record<string, unknown>): string | null {
+  if (typeof input.file_path === "string") return input.file_path;
+  if (typeof input.filepath === "string") return input.filepath;
+  return null;
+}
+
+function extractRawInputDiff(input: Record<string, unknown>): import("../../events/eco-zoon").DiffBlock | null {
+  if (typeof input.new_string !== "string") return null;
+  const path = resolveFilePath(input) ?? "edit";
+  return {
+    path,
+    oldText: typeof input.old_string === "string" ? input.old_string : "",
+    newText: input.new_string,
+  };
+}
+
 function summarizeRawInput(
   kind: string | undefined,
   input: Record<string, unknown> | undefined,
   locations: Array<{ path: string }> | undefined,
 ): string | null {
   if (input) {
-    if (kind === "edit" && typeof input.filepath === "string") return shortPath(input.filepath);
-    if (kind === "read" && typeof input.filepath === "string") return shortPath(input.filepath);
+    const fp = resolveFilePath(input);
+    if ((kind === "edit" || kind === "read") && fp) return shortPath(fp);
     if (kind === "fetch" && typeof input.url === "string") return input.url;
     if (kind === "execute" && typeof input.command === "string") return input.command;
-    // Generic fallback: first short string field that isn't a giant blob.
+    // Generic fallback: first short string field that isn't a patch blob.
     for (const [k, v] of Object.entries(input)) {
-      if (k === "diff") continue;
+      if (k === "diff" || k === "old_string" || k === "new_string") continue;
       if (typeof v === "string" && v.length < 120) return v;
     }
   }

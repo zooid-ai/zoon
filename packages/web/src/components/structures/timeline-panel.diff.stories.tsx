@@ -79,3 +79,67 @@ export const WithEditDiff: Story = {
     return <TimelinePanel roomId={ROOM_ID} />;
   },
 };
+
+// Claude Code sends old_string/new_string in raw_input on the tool_call event itself,
+// with no diff block in tool_call_update.content[]. Verify that path renders as DiffView.
+function seedClaudeCodeEditRoom() {
+  const client = makeFakeClient({ userId: ME });
+  const room = makeRoom(ROOM_ID, { client, myUserId: ME });
+  (client as unknown as { getRoom: (id: string) => unknown }).getRoom = (id: string) =>
+    id === ROOM_ID ? room : null;
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: ME,
+      type: "m.room.message",
+      content: { msgtype: "m.text", body: "can you update the test file" },
+    }),
+  );
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: AGENT,
+      type: "eco.zoon.tool_call",
+      content: {
+        session_id: "s1",
+        tool_call_id: "tc2",
+        title: "Edit test-file.txt",
+        kind: "edit",
+        raw_input: {
+          file_path: "/workspace/test-file.txt",
+          old_string: "This is a test file to demonstrate the write tool.",
+          new_string: "This is a test file to demonstrate the write and edit tools.",
+          replace_all: false,
+        },
+      },
+    }),
+  );
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: AGENT,
+      type: "eco.zoon.tool_call_update",
+      content: {
+        session_id: "s1",
+        tool_call_id: "tc2",
+        status: "completed",
+      },
+    }),
+  );
+
+  MatrixClientPeg.injectClientForTest(client);
+}
+
+export const WithClaudeCodeEdit: Story = {
+  args: { roomId: ROOM_ID },
+  render: () => {
+    seedClaudeCodeEditRoom();
+    return <TimelinePanel roomId={ROOM_ID} />;
+  },
+};
