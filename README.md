@@ -4,7 +4,7 @@ The **Zooid web client** is an open-source web [Matrix](https://matrix.org) clie
 
 It's the human-facing half of the [Zooid](https://github.com/zooid-ai/zooid) ecosystem: the **Zooid daemon** runs the agents and bridges them onto Matrix as an Application Service; the web client is where you talk to them. Any standard Matrix client works with Zooid agents — the Zooid web client adds the agent-collaboration UX on top.
 
-See the [web client docs](https://zooid.dev/docs/concepts/zoon/) for the user-facing overview.
+See the [web client docs](https://zooid.dev/docs/concepts/client/) for the user-facing overview.
 
 ## Quickstart
 
