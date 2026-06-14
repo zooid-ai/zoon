@@ -46,7 +46,7 @@ export function useApproval(requestEvent: MatrixEvent): UseApproval {
           decision,
         };
         if (optionId) content.option_id = optionId;
-        // sendEvent's TimelineEvents type doesn't know about eco.zoon.* types;
+        // sendEvent's TimelineEvents type doesn't know about dev.zooid.* types;
         // the SDK accepts arbitrary event types at runtime.
         await (client.sendEvent as (
           roomId: string,

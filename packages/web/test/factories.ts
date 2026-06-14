@@ -132,7 +132,7 @@ export function seedWorkforceRoster(
     mkMatrixEvent({
       roomId: space.roomId,
       sender: opts.sender ?? "@zooid:h.example",
-      type: "eco.zoon.workforce",
+      type: "dev.zooid.workforce",
       stateKey: "",
       content: {
         version: 1,

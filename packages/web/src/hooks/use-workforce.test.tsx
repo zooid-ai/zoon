@@ -20,7 +20,7 @@ function seedSpace(content: unknown) {
       mkMatrixEvent({
         roomId: spaceId,
         sender: "@zooid:h.example",
-        type: "eco.zoon.workforce",
+        type: "dev.zooid.workforce",
         stateKey: "",
         content: content as Record<string, unknown>,
       }),
@@ -68,7 +68,7 @@ describe("useWorkforce", () => {
         mkMatrixEvent({
           roomId: spaceId,
           sender: "@zooid:h.example",
-          type: "eco.zoon.workforce",
+          type: "dev.zooid.workforce",
           stateKey: "",
           content: {
             version: 1,

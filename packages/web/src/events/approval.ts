@@ -1,8 +1,8 @@
 import type { MatrixEvent } from "matrix-js-sdk";
 
 export const ApprovalEventType = {
-  Request: "eco.zoon.approval_request",
-  Response: "eco.zoon.approval_response",
+  Request: "dev.zooid.approval_request",
+  Response: "dev.zooid.approval_response",
 } as const;
 
 export type ApprovalDecision = "allow" | "cancel";

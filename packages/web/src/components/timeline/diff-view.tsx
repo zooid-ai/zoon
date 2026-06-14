@@ -1,4 +1,4 @@
-import type { DiffBlock } from "@/events/eco-zoon";
+import type { DiffBlock } from "@/events/zooid-events";
 import { lineDiff } from "@/lib/line-diff";
 
 function shortPath(p: string): string {

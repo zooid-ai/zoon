@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ErrorTile } from "./error-tile";
-import type { DecodedEcoZoonEvent } from "../../events/eco-zoon";
+import type { DecodedZooidEvent } from "../../events/zooid-events";
 
-type ErrorDecoded = Extract<DecodedEcoZoonEvent, { kind: "error" }>;
+type ErrorDecoded = Extract<DecodedZooidEvent, { kind: "error" }>;
 
 const baseDecoded: ErrorDecoded = {
   kind: "error",

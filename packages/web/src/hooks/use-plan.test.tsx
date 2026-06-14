@@ -43,7 +43,7 @@ describe("usePlan", () => {
         mkMatrixEvent({
           roomId,
           sender: "@agent:h.example",
-          type: "eco.zoon.plan",
+          type: "dev.zooid.plan",
           content: threadContent({
             session_id: "s1",
             entries: [{ content: "Add bananas", status: "pending" }],
@@ -59,7 +59,7 @@ describe("usePlan", () => {
         mkMatrixEvent({
           roomId,
           sender: "@agent:h.example",
-          type: "eco.zoon.plan",
+          type: "dev.zooid.plan",
           content: threadContent({
             session_id: "s1",
             entries: [
@@ -87,7 +87,7 @@ describe("usePlan", () => {
         mkMatrixEvent({
           roomId,
           sender: "@agent:h.example",
-          type: "eco.zoon.tool_call",
+          type: "dev.zooid.tool_call",
           content: threadContent({
             session_id: "s1",
             tool_call_id: "tc1",

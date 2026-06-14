@@ -21,14 +21,14 @@ const COMMANDS: SlashCommandSpec[] = [
     names: ["clear", "new"],
     description: "Reset the agent's memory of this thread",
     threadScopedOnly: true,
-    build: () => ({ eventType: "eco.zoon.session_reset", content: {} }),
+    build: () => ({ eventType: "dev.zooid.session_reset", content: {} }),
   },
   {
     names: ["interrupt", "stop"],
     description: "Stop the agent's current turn in this thread",
     threadScopedOnly: true,
     build: (args) => ({
-      eventType: "eco.zoon.interrupt",
+      eventType: "dev.zooid.interrupt",
       content: args ? { reason: args } : {},
     }),
   },

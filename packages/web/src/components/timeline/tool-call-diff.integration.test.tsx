@@ -2,8 +2,8 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { makeFakeClient, makeRoom, mkMatrixEvent, pushTimelineEvent } from "../../../test/factories";
 import { MatrixClientPeg } from "../../client/peg";
-import { EcoZoonEventTile } from "./eco-zoon-event";
-import { decodeEcoZoonEvent } from "../../events/eco-zoon";
+import { ZooidEventTile } from "./zooid-event";
+import { decodeZooidEvent } from "../../events/zooid-events";
 
 const me = "@me:h.example";
 const roomId = "!r:h.example";
@@ -19,7 +19,7 @@ describe("ToolCallCard diff rendering", () => {
     const call = mkMatrixEvent({
       roomId,
       sender: "@agent:h.example",
-      type: "eco.zoon.tool_call",
+      type: "dev.zooid.tool_call",
       content: { session_id: "s1", tool_call_id: "tc1", title: "Edit auth.ts", kind: "edit" },
     });
     pushTimelineEvent(room, call);
@@ -29,7 +29,7 @@ describe("ToolCallCard diff rendering", () => {
         mkMatrixEvent({
           roomId,
           sender: "@agent:h.example",
-          type: "eco.zoon.tool_call_update",
+          type: "dev.zooid.tool_call_update",
           content: {
             session_id: "s1",
             tool_call_id: "tc1",
@@ -40,8 +40,8 @@ describe("ToolCallCard diff rendering", () => {
       );
     });
 
-    const decoded = decodeEcoZoonEvent(call)!;
-    render(<EcoZoonEventTile decoded={decoded} sender="@agent:h.example" roomId={roomId} ts={Date.now()} />);
+    const decoded = decodeZooidEvent(call)!;
+    render(<ZooidEventTile decoded={decoded} sender="@agent:h.example" roomId={roomId} ts={Date.now()} />);
     screen.getByRole("button", { name: /Edit auth.ts/i }).click();
     expect(await screen.findByText("auth.ts")).toBeInTheDocument();
     expect(screen.getByText("b")).toBeInTheDocument();

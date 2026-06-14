@@ -55,7 +55,7 @@ export async function registerWithPassword(
   password: string,
   opts: { token?: string } = {},
 ): Promise<Credentials> {
-  const base = { username, password, initial_device_display_name: "Zoon Web" };
+  const base = { username, password, initial_device_display_name: "Zooid Web" };
 
   // First call carries no auth — the server replies 401 with the required flows.
   let res = await postRegister(homeserverUrl, base);
@@ -73,7 +73,7 @@ export async function registerWithPassword(
     if (!opts.token) throw new Error("This server requires a registration token to sign up.");
     auth = { type: TOKEN, token: opts.token, session };
   } else {
-    throw new Error("This server's registration is not supported by Zoon.");
+    throw new Error("This server's registration is not supported by Zooid.");
   }
 
   res = await postRegister(homeserverUrl, { ...base, auth });

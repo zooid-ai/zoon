@@ -31,7 +31,7 @@ describe("command palette", () => {
         mkMatrixEvent({
           roomId,
           sender: "@agent:h.example",
-          type: "eco.zoon.available_commands_update",
+          type: "dev.zooid.available_commands_update",
           content: {
             session_id: "s1",
             available_commands: [{ name: "plan", description: "Switch to plan mode" }],

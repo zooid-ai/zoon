@@ -76,7 +76,7 @@ describe("<ApprovalCard />", () => {
     expect(screen.getByText(/insufficient permission/i)).toBeInTheDocument();
   });
 
-  it("clicking Allow sends eco.zoon.approval_response and disables buttons during send", async () => {
+  it("clicking Allow sends dev.zooid.approval_response and disables buttons during send", async () => {
     let resolveSend: () => void = () => {};
     const sendEvent = vi.fn().mockImplementation(
       () =>

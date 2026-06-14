@@ -28,7 +28,7 @@ function seedDiffRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call",
+      type: "dev.zooid.tool_call",
       content: {
         session_id: "s1",
         tool_call_id: "tc1",
@@ -43,7 +43,7 @@ function seedDiffRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call_update",
+      type: "dev.zooid.tool_call_update",
       content: {
         session_id: "s1",
         tool_call_id: "tc1",
@@ -103,7 +103,7 @@ function seedClaudeCodeEditRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call",
+      type: "dev.zooid.tool_call",
       content: {
         session_id: "s1",
         tool_call_id: "tc2",
@@ -124,7 +124,7 @@ function seedClaudeCodeEditRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call_update",
+      type: "dev.zooid.tool_call_update",
       content: {
         session_id: "s1",
         tool_call_id: "tc2",
@@ -165,7 +165,7 @@ function seedBashOutputRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call",
+      type: "dev.zooid.tool_call",
       content: {
         session_id: "s1",
         tool_call_id: "tc3",
@@ -181,7 +181,7 @@ function seedBashOutputRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call_update",
+      type: "dev.zooid.tool_call_update",
       content: {
         session_id: "s1",
         tool_call_id: "tc3",

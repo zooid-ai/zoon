@@ -103,7 +103,7 @@ export const test = base.extend<{ daemon: DaemonImpersonator; human: FreshHuman 
 
       async createRoomWithHuman(humanUserId) {
         // Default PL: creator (agent) gets 100, invitee defaults to 0. That's
-        // fine for the e2e — eco.zoon.approval_response gates at events_default
+        // fine for the e2e — dev.zooid.approval_response gates at events_default
         // (0) per the Permissions section of the spec, so the human can
         // respond with PL 0.
         const { room_id } = await agentClient.createRoom({
@@ -119,7 +119,7 @@ export const test = base.extend<{ daemon: DaemonImpersonator; human: FreshHuman 
           roomId: string,
           type: string,
           content: Record<string, unknown>,
-        ) => Promise<{ event_id: string }>)(roomId, "eco.zoon.approval_request", {
+        ) => Promise<{ event_id: string }>)(roomId, "dev.zooid.approval_request", {
           approval_id: approvalId,
           session_id: opts.sessionId,
           tool_call_id: opts.toolCallId,
@@ -137,7 +137,7 @@ export const test = base.extend<{ daemon: DaemonImpersonator; human: FreshHuman 
           const room = agentClient.getRoom(roomId);
           const events = room?.getLiveTimeline().getEvents() ?? [];
           for (const ev of events) {
-            if (ev.getType() !== "eco.zoon.approval_response") continue;
+            if (ev.getType() !== "dev.zooid.approval_response") continue;
             const c = ev.getContent() as { approval_id?: string; decision?: string };
             if (c.approval_id === approvalId && typeof c.decision === "string") {
               return { decision: c.decision, sender: ev.getSender() ?? "?" };

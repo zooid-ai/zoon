@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { MatrixClientPeg } from "../client/peg";
 import { allRoomEvents, makeSubscribe } from "./use-timeline";
-import { EcoZoonEventType } from "../events/eco-zoon";
+import { ZooidEventType } from "../events/zooid-events";
 
 export interface AdvertisedCommand {
   name: string;
@@ -21,7 +21,7 @@ function snapshot(roomId: string): AdvertisedCommand[] {
   let latest: AdvertisedCommand[] = EMPTY;
   let count = 0;
   for (const ev of allRoomEvents(room)) {
-    if (ev.getType() !== EcoZoonEventType.AvailableCommandsUpdate) continue;
+    if (ev.getType() !== ZooidEventType.AvailableCommandsUpdate) continue;
     const c = ev.getContent() as { available_commands?: unknown };
     if (!Array.isArray(c.available_commands)) continue;
     count++;

@@ -2,10 +2,10 @@ import { useSyncExternalStore } from "react";
 import { MatrixClientPeg } from "../client/peg";
 import { allRoomEvents, makeSubscribe } from "./use-timeline";
 import {
-  EcoZoonEventType,
+  ZooidEventType,
   planEntriesFromToolInput,
   type PlanBoardEntry,
-} from "../events/eco-zoon";
+} from "../events/zooid-events";
 
 export interface PlanSnapshot {
   sessionId: string;
@@ -35,7 +35,7 @@ function snapshotPlan(roomId: string, threadId: string): PlanSnapshot | null {
     const sessionId = typeof c.session_id === "string" ? c.session_id : null;
     if (!sessionId) continue;
     let entries: PlanBoardEntry[] | null = null;
-    if (t === EcoZoonEventType.Plan && Array.isArray(c.entries)) {
+    if (t === ZooidEventType.Plan && Array.isArray(c.entries)) {
       entries = (c.entries as unknown[])
         .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
         .filter((e) => typeof e.content === "string" && typeof e.status === "string")
@@ -45,7 +45,7 @@ function snapshotPlan(roomId: string, threadId: string): PlanSnapshot | null {
           ...(typeof e.priority === "string" ? { priority: e.priority as string } : {}),
         }));
       if (entries.length === 0) entries = null;
-    } else if (t === EcoZoonEventType.ToolCall || t === EcoZoonEventType.ToolCallUpdate) {
+    } else if (t === ZooidEventType.ToolCall || t === ZooidEventType.ToolCallUpdate) {
       entries = planEntriesFromToolInput(c.raw_input);
     }
     if (entries) {

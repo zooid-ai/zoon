@@ -11,7 +11,7 @@ import { useReactions } from "@/hooks/use-reactions";
 import { useThreadPreview } from "@/hooks/use-timeline";
 import { useUserName } from "@/hooks/use-user-name";
 import { useEditedContent } from "@/hooks/use-edited-content";
-import { EcoZoonEventType } from "@/events/eco-zoon";
+import { ZooidEventType } from "@/events/zooid-events";
 import { FormattedMessageBody } from "./formatted-message-body";
 import { ReactionPicker } from "./reaction-picker";
 import { ReactionsRow } from "./reactions-row";
@@ -62,7 +62,7 @@ function InlineReply({ event }: { event: MatrixEvent }) {
   const roomId = event.getRoomId() ?? "";
   const name = useUserName(sender, roomId);
 
-  if (event.getType() === EcoZoonEventType.Error) {
+  if (event.getType() === ZooidEventType.Error) {
     const message = typeof c.message === "string" ? c.message : "Agent error";
     return (
       <div className="flex items-center gap-1.5 text-sm leading-5 text-muted-foreground">

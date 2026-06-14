@@ -16,7 +16,7 @@ function snapshot(spaceId: string): WorkforceView {
   const room = MatrixClientPeg.safeGet()?.getRoom(spaceId);
   if (!room) return EMPTY;
   const cached = cache.get(room);
-  const ev = room.currentState.getStateEvents("eco.zoon.workforce", "");
+  const ev = room.currentState.getStateEvents("dev.zooid.workforce", "");
   const content = ev?.getContent() ?? null;
   const parsed = parseWorkforceRoster(content);
   if (!parsed) {

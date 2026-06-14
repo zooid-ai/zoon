@@ -29,7 +29,7 @@ describe("approval card integration", () => {
     localStorage.clear();
   });
 
-  it("renders Allow/Cancel and sends eco.zoon.approval_response on click", async () => {
+  it("renders Allow/Cancel and sends dev.zooid.approval_response on click", async () => {
     stubSyncWithRooms(HS, [
       {
         roomId,
@@ -37,7 +37,7 @@ describe("approval card integration", () => {
         state: [{ type: "m.room.name", sender: me, stateKey: "", content: { name: "alpha" } }],
         timeline: [
           {
-            type: "eco.zoon.approval_request",
+            type: "dev.zooid.approval_request",
             sender: "@architect.acme:h.example",
             content: {
               approval_id: "a1",
@@ -52,7 +52,7 @@ describe("approval card integration", () => {
     const sendCalls: unknown[] = [];
     mswServer.use(
       http.put(
-        `${HS}/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/eco.zoon.approval_response/:txnId`,
+        `${HS}/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/dev.zooid.approval_response/:txnId`,
         async ({ request }) => {
           sendCalls.push(await request.json());
           return HttpResponse.json({ event_id: "$resp1" });

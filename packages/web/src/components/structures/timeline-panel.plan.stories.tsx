@@ -28,7 +28,7 @@ function seedPlanRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call",
+      type: "dev.zooid.tool_call",
       content: {
         session_id: "s1",
         tool_call_id: "tc1",
@@ -38,14 +38,14 @@ function seedPlanRoom() {
       },
     }),
   );
-  // eco.zoon.plan renders as membership-style "Agent updated plan" tile in the timeline.
+  // dev.zooid.plan renders as membership-style "Agent updated plan" tile in the timeline.
   // The plan board itself is mounted in the composer area (RoomView), not here.
   pushTimelineEvent(
     room,
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.plan",
+      type: "dev.zooid.plan",
       content: {
         session_id: "s1",
         entries: [
@@ -75,7 +75,7 @@ function seedToolCallOnlyRoom() {
       content: { msgtype: "m.text", body: "Make a grocery list." },
     }),
   );
-  // When only a tool_call with planning input exists (no eco.zoon.plan event yet),
+  // When only a tool_call with planning input exists (no dev.zooid.plan event yet),
   // the plan board in the composer area uses planEntriesFromToolInput as a fallback.
   // In the timeline this still just shows as a tool call card.
   pushTimelineEvent(
@@ -83,7 +83,7 @@ function seedToolCallOnlyRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.tool_call",
+      type: "dev.zooid.tool_call",
       content: {
         session_id: "s1",
         tool_call_id: "tc2",

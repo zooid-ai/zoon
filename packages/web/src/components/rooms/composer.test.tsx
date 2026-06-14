@@ -169,7 +169,7 @@ describe("<Composer /> thread mode", () => {
 });
 
 describe("<Composer /> /clear scope", () => {
-  it("/clear in thread mode sends eco.zoon.session_reset with the thread relation", async () => {
+  it("/clear in thread mode sends dev.zooid.session_reset with the thread relation", async () => {
     const { send } = setup();
     render(<Composer roomId={roomId} threadRootEventId="$root" />);
     const user = userEvent.setup();
@@ -179,7 +179,7 @@ describe("<Composer /> /clear scope", () => {
       expect(send).toHaveBeenCalledWith(
         roomId,
         "$root",
-        "eco.zoon.session_reset",
+        "dev.zooid.session_reset",
         { "m.relates_to": { rel_type: "m.thread", event_id: "$root" } },
       ),
     );

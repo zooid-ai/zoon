@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import type { DecodedEcoZoonEvent } from "../../events/eco-zoon";
+import type { DecodedZooidEvent } from "../../events/zooid-events";
 import { useToolCallApproval, useToolCallStatus } from "@/hooks/use-timeline";
 import { useUserName } from "@/hooks/use-user-name";
 import { UserAvatar } from "@/components/user-avatar";
@@ -40,14 +40,14 @@ function renderToolOutput(text: string) {
 }
 
 interface Props {
-  decoded: DecodedEcoZoonEvent;
+  decoded: DecodedZooidEvent;
   sender: string;
   roomId: string;
   /** origin_server_ts of the underlying Matrix event (used for staleness detection). */
   ts: number;
 }
 
-export function EcoZoonEventTile({ decoded, sender, roomId, ts }: Props) {
+export function ZooidEventTile({ decoded, sender, roomId, ts }: Props) {
   const senderName = useUserName(sender, roomId);
   switch (decoded.kind) {
     case "session.start":
@@ -155,7 +155,7 @@ function ToolCallCard({
   roomId,
   ts,
 }: {
-  decoded: Extract<DecodedEcoZoonEvent, { kind: "tool_call" }>;
+  decoded: Extract<DecodedZooidEvent, { kind: "tool_call" }>;
   sender: string;
   roomId: string;
   ts: number;
@@ -281,7 +281,7 @@ function resolveFilePath(input: Record<string, unknown>): string | null {
   return null;
 }
 
-function extractRawInputDiff(input: Record<string, unknown>): import("../../events/eco-zoon").DiffBlock | null {
+function extractRawInputDiff(input: Record<string, unknown>): import("../../events/zooid-events").DiffBlock | null {
   if (typeof input.new_string !== "string") return null;
   const path = resolveFilePath(input) ?? "edit";
   return {

@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { mkMatrixEvent } from "../../test/factories";
 import {
-  EcoZoonEventType,
-  decodeEcoZoonEvent,
+  ZooidEventType,
+  decodeZooidEvent,
   extractToolCallContent,
-  isEcoZoonLifecycle,
+  isZooidLifecycle,
   isAgentMessageChunk,
   isToolCall,
   isTurnEnd,
   planEntriesFromToolInput,
-} from "./eco-zoon";
+} from "./zooid-events";
 
 
 const room = "!r:h.example";
@@ -46,35 +46,35 @@ describe("extractToolCallContent", () => {
   });
 });
 
-describe("decodeEcoZoonEvent", () => {
+describe("decodeZooidEvent", () => {
   it("decodes session.start", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.SessionStart,
+      type: ZooidEventType.SessionStart,
       content: { session_id: "s1" },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({ kind: "session.start", sessionId: "s1" });
+    expect(decodeZooidEvent(ev)).toEqual({ kind: "session.start", sessionId: "s1" });
   });
 
   it("decodes turn.start", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.TurnStart,
+      type: ZooidEventType.TurnStart,
       content: { session_id: "s1" },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({ kind: "turn.start", sessionId: "s1" });
+    expect(decodeZooidEvent(ev)).toEqual({ kind: "turn.start", sessionId: "s1" });
   });
 
   it("decodes agent_message_chunk", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.AgentMessageChunk,
+      type: ZooidEventType.AgentMessageChunk,
       content: { session_id: "s1", content: "hello" },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "agent_message_chunk",
       sessionId: "s1",
       content: "hello",
@@ -85,10 +85,10 @@ describe("decodeEcoZoonEvent", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.ToolCall,
+      type: ZooidEventType.ToolCall,
       content: { session_id: "s1", tool_call_id: "tc1", title: "Bash", kind: "execute" },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "tool_call",
       sessionId: "s1",
       toolCallId: "tc1",
@@ -101,7 +101,7 @@ describe("decodeEcoZoonEvent", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.ToolCallUpdate,
+      type: ZooidEventType.ToolCallUpdate,
       content: {
         session_id: "s1",
         tool_call_id: "tc1",
@@ -109,7 +109,7 @@ describe("decodeEcoZoonEvent", () => {
         content: "running…",
       },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "tool_call_update",
       sessionId: "s1",
       toolCallId: "tc1",
@@ -122,13 +122,13 @@ describe("decodeEcoZoonEvent", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.Plan,
+      type: ZooidEventType.Plan,
       content: {
         session_id: "s1",
         entries: [{ content: "do the thing", status: "pending" }],
       },
     });
-    expect(decodeEcoZoonEvent(ev)).toMatchObject({
+    expect(decodeZooidEvent(ev)).toMatchObject({
       kind: "plan",
       sessionId: "s1",
       entries: [{ content: "do the thing", status: "pending" }],
@@ -139,10 +139,10 @@ describe("decodeEcoZoonEvent", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.TurnEnd,
+      type: ZooidEventType.TurnEnd,
       content: { session_id: "s1", stop_reason: "end_turn" },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "turn.end",
       sessionId: "s1",
       stopReason: "end_turn",
@@ -156,36 +156,36 @@ describe("decodeEcoZoonEvent", () => {
       type: "m.room.message",
       content: { msgtype: "m.text", body: "hi" },
     });
-    expect(decodeEcoZoonEvent(ev)).toBeNull();
+    expect(decodeZooidEvent(ev)).toBeNull();
   });
 
   it("returns null for malformed eco events (missing required field)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.AgentMessageChunk,
+      type: ZooidEventType.AgentMessageChunk,
       content: { session_id: "s1" },
     });
-    expect(decodeEcoZoonEvent(ev)).toBeNull();
+    expect(decodeZooidEvent(ev)).toBeNull();
   });
 
-  it("returns null for unknown eco.zoon.* type (forward-compat)", () => {
+  it("returns null for unknown dev.zooid.* type (forward-compat)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: "eco.zoon.future_event",
+      type: "dev.zooid.future_event",
       content: { session_id: "s1" },
     });
-    expect(decodeEcoZoonEvent(ev)).toBeNull();
+    expect(decodeZooidEvent(ev)).toBeNull();
   });
 });
 
-describe("decodeEcoZoonEvent — plan (ACP PlanEntry shape)", () => {
+describe("decodeZooidEvent — plan (ACP PlanEntry shape)", () => {
   it("decodes entries by content/priority/status (not id/title)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.Plan,
+      type: ZooidEventType.Plan,
       content: {
         session_id: "s1",
         entries: [
@@ -194,7 +194,7 @@ describe("decodeEcoZoonEvent — plan (ACP PlanEntry shape)", () => {
         ],
       },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "plan",
       sessionId: "s1",
       entries: [
@@ -208,10 +208,10 @@ describe("decodeEcoZoonEvent — plan (ACP PlanEntry shape)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.Plan,
+      type: ZooidEventType.Plan,
       content: { session_id: "s1", entries: [{ content: "Do thing", status: "completed" }] },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "plan",
       sessionId: "s1",
       entries: [{ content: "Do thing", status: "completed" }],
@@ -222,10 +222,10 @@ describe("decodeEcoZoonEvent — plan (ACP PlanEntry shape)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.Plan,
+      type: ZooidEventType.Plan,
       content: { session_id: "s1", entries: [{ priority: "low" }, { content: "ok", status: "pending" }] },
     });
-    const decoded = decodeEcoZoonEvent(ev);
+    const decoded = decodeZooidEvent(ev);
     expect(decoded).toMatchObject({ kind: "plan", entries: [{ content: "ok", status: "pending" }] });
   });
 });
@@ -267,37 +267,37 @@ describe("planEntriesFromToolInput — fallback for shims that don't emit `plan`
 });
 
 describe("type guards", () => {
-  it("isEcoZoonLifecycle accepts all 7 lifecycle types", () => {
+  it("isZooidLifecycle accepts all 7 lifecycle types", () => {
     const types = [
-      EcoZoonEventType.SessionStart,
-      EcoZoonEventType.TurnStart,
-      EcoZoonEventType.AgentMessageChunk,
-      EcoZoonEventType.ToolCall,
-      EcoZoonEventType.ToolCallUpdate,
-      EcoZoonEventType.Plan,
-      EcoZoonEventType.TurnEnd,
+      ZooidEventType.SessionStart,
+      ZooidEventType.TurnStart,
+      ZooidEventType.AgentMessageChunk,
+      ZooidEventType.ToolCall,
+      ZooidEventType.ToolCallUpdate,
+      ZooidEventType.Plan,
+      ZooidEventType.TurnEnd,
     ];
     for (const t of types) {
       const ev = mkMatrixEvent({ roomId: room, sender, type: t, content: { session_id: "s1" } });
-      expect(isEcoZoonLifecycle(ev)).toBe(true);
+      expect(isZooidLifecycle(ev)).toBe(true);
     }
   });
 
-  it("isEcoZoonLifecycle rejects approval events (those are PLAN-03)", () => {
+  it("isZooidLifecycle rejects approval events (those are PLAN-03)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: "eco.zoon.approval_request",
+      type: "dev.zooid.approval_request",
       content: { approval_id: "a1" },
     });
-    expect(isEcoZoonLifecycle(ev)).toBe(false);
+    expect(isZooidLifecycle(ev)).toBe(false);
   });
 
   it("isAgentMessageChunk / isToolCall / isTurnEnd narrow correctly", () => {
     const chunk = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.AgentMessageChunk,
+      type: ZooidEventType.AgentMessageChunk,
       content: { session_id: "s1", content: "x" },
     });
     expect(isAgentMessageChunk(chunk)).toBe(true);
@@ -306,12 +306,12 @@ describe("type guards", () => {
   });
 });
 
-describe("decodeEcoZoonEvent — available_commands_update (ZNC021)", () => {
+describe("decodeZooidEvent — available_commands_update (ZNC021)", () => {
   it("decodes available_commands_update", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.AvailableCommandsUpdate,
+      type: ZooidEventType.AvailableCommandsUpdate,
       content: {
         session_id: "s1",
         available_commands: [
@@ -320,7 +320,7 @@ describe("decodeEcoZoonEvent — available_commands_update (ZNC021)", () => {
         ],
       },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "available_commands",
       sessionId: "s1",
       commands: [
@@ -334,10 +334,10 @@ describe("decodeEcoZoonEvent — available_commands_update (ZNC021)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: EcoZoonEventType.AvailableCommandsUpdate,
+      type: ZooidEventType.AvailableCommandsUpdate,
       content: { session_id: "s1", available_commands: [{ description: "no name" }, { name: "ok" }] },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "available_commands",
       sessionId: "s1",
       commands: [{ name: "ok", description: "" }],
@@ -345,12 +345,12 @@ describe("decodeEcoZoonEvent — available_commands_update (ZNC021)", () => {
   });
 });
 
-describe("decodeEcoZoonEvent — error (ZOD055)", () => {
-  it("decodes eco.zoon.error with full payload", () => {
+describe("decodeZooidEvent — error (ZOD055)", () => {
+  it("decodes dev.zooid.error with full payload", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: "eco.zoon.error",
+      type: "dev.zooid.error",
       content: {
         session_id: "sess-1",
         turn_id: "turn-1",
@@ -362,7 +362,7 @@ describe("decodeEcoZoonEvent — error (ZOD055)", () => {
         recovery: "https://zooid.dev/docs/guides/run-in-container#auth",
       },
     });
-    expect(decodeEcoZoonEvent(ev)).toEqual({
+    expect(decodeZooidEvent(ev)).toEqual({
       kind: "error",
       sessionId: "sess-1",
       turnId: "turn-1",
@@ -379,38 +379,38 @@ describe("decodeEcoZoonEvent — error (ZOD055)", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: "eco.zoon.error",
+      type: "dev.zooid.error",
       content: {},
     });
-    expect(decodeEcoZoonEvent(ev)).toBeNull();
+    expect(decodeZooidEvent(ev)).toBeNull();
   });
 
   it("allows session_id null (pre-turn error) when code+message present", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: "eco.zoon.error",
+      type: "dev.zooid.error",
       content: {
         code: "image_pull_failed",
         message: "pull failed",
         transient: true,
       },
     });
-    const decoded = decodeEcoZoonEvent(ev);
+    const decoded = decodeZooidEvent(ev);
     expect(decoded).toMatchObject({ kind: "error", code: "image_pull_failed" });
   });
 
-  it("isEcoZoonLifecycle returns true for eco.zoon.error", () => {
+  it("isZooidLifecycle returns true for dev.zooid.error", () => {
     const ev = mkMatrixEvent({
       roomId: room,
       sender,
-      type: "eco.zoon.error",
+      type: "dev.zooid.error",
       content: {},
     });
-    expect(isEcoZoonLifecycle(ev)).toBe(true);
+    expect(isZooidLifecycle(ev)).toBe(true);
   });
 
-  it("EcoZoonEventType.Error is exported", () => {
-    expect(EcoZoonEventType.Error).toBe("eco.zoon.error");
+  it("ZooidEventType.Error is exported", () => {
+    expect(ZooidEventType.Error).toBe("dev.zooid.error");
   });
 });

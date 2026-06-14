@@ -41,7 +41,7 @@ describe("<TimelinePanel />", () => {
     await waitFor(() => expect(screen.getByText("hello world")).toBeInTheDocument());
   });
 
-  it("renders eco.zoon.agent_message_chunk events with their content", async () => {
+  it("renders dev.zooid.agent_message_chunk events with their content", async () => {
     stubSyncWithRooms(HS, [
       {
         roomId,
@@ -49,7 +49,7 @@ describe("<TimelinePanel />", () => {
         state: [{ type: "m.room.name", sender: me, stateKey: "", content: { name: "alpha" } }],
         timeline: [
           {
-            type: "eco.zoon.agent_message_chunk",
+            type: "dev.zooid.agent_message_chunk",
             sender: "@architect.acme:h.example",
             content: { session_id: "s1", content: "agent thinking…" },
           },
@@ -60,7 +60,7 @@ describe("<TimelinePanel />", () => {
     await waitFor(() => expect(screen.getByText("agent thinking…")).toBeInTheDocument());
   });
 
-  it("renders eco.zoon.tool_call as a (placeholder) collapsible card", async () => {
+  it("renders dev.zooid.tool_call as a (placeholder) collapsible card", async () => {
     stubSyncWithRooms(HS, [
       {
         roomId,
@@ -68,7 +68,7 @@ describe("<TimelinePanel />", () => {
         state: [{ type: "m.room.name", sender: me, stateKey: "", content: { name: "alpha" } }],
         timeline: [
           {
-            type: "eco.zoon.tool_call",
+            type: "dev.zooid.tool_call",
             sender: "@architect.acme:h.example",
             content: { session_id: "s1", tool_call_id: "tc1", title: "Bash", kind: "execute" },
           },
@@ -81,7 +81,7 @@ describe("<TimelinePanel />", () => {
     );
   });
 
-  it("does not render unknown eco.zoon.* events (forward-compat)", async () => {
+  it("does not render unknown dev.zooid.* events (forward-compat)", async () => {
     stubSyncWithRooms(HS, [
       {
         roomId,
@@ -89,7 +89,7 @@ describe("<TimelinePanel />", () => {
         state: [{ type: "m.room.name", sender: me, stateKey: "", content: { name: "alpha" } }],
         timeline: [
           {
-            type: "eco.zoon.future_event",
+            type: "dev.zooid.future_event",
             sender: "@architect.acme:h.example",
             content: { session_id: "s1" },
           },

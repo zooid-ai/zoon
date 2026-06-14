@@ -8,7 +8,7 @@ import {
 } from "matrix-js-sdk";
 import { useSyncExternalStore } from "react";
 import { MatrixClientPeg } from "../client/peg";
-import { extractToolCallContent, type DiffBlock } from "../events/eco-zoon";
+import { extractToolCallContent, type DiffBlock } from "../events/zooid-events";
 
 interface TimelineState {
   events: MatrixEvent[];
@@ -355,7 +355,7 @@ function snapshotToolCall(roomId: string, toolCallId: string): ToolCallStatus {
   const relevant: Array<{ ts: number; ev: (typeof all)[number] }> = [];
   for (const ev of all) {
     const t = ev.getType();
-    if (t !== "eco.zoon.tool_call" && t !== "eco.zoon.tool_call_update") continue;
+    if (t !== "dev.zooid.tool_call" && t !== "dev.zooid.tool_call_update") continue;
     const c = ev.getContent() as { tool_call_id?: string };
     if (c.tool_call_id !== toolCallId) continue;
     relevant.push({ ts: ev.getTs(), ev });
@@ -373,7 +373,7 @@ function snapshotToolCall(roomId: string, toolCallId: string): ToolCallStatus {
     if (isPlainObject(c.raw_input)) {
       mergedInput = { ...(mergedInput ?? {}), ...c.raw_input };
     }
-    if (t === "eco.zoon.tool_call_update" && typeof c.status === "string") {
+    if (t === "dev.zooid.tool_call_update" && typeof c.status === "string") {
       if (ts >= latestTs) {
         latestTs = ts;
         latestStatus = c.status;
@@ -437,7 +437,7 @@ function snapshotToolCallApproval(roomId: string, toolCallId: string): ToolCallA
   const all = allRoomEvents(room);
   let approvalEv: MatrixEvent | undefined;
   for (const ev of all) {
-    if (ev.getType() !== "eco.zoon.approval_request") continue;
+    if (ev.getType() !== "dev.zooid.approval_request") continue;
     const c = ev.getContent() as { tool_call_id?: string };
     if (c.tool_call_id === toolCallId) {
       approvalEv = ev;

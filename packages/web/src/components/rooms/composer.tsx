@@ -193,7 +193,7 @@ export function Composer({ roomId, threadRootEventId, onExitThread }: ComposerPr
         const slash = parseSlashCommand(body, { threadScoped });
         if (slash) {
           // matrix-js-sdk auto-adds m.relates_to for m.room.message threaded
-          // sends, but not for custom event types (eco.zoon.*). Set the
+          // sends, but not for custom event types (dev.zooid.*). Set the
           // relation explicitly so the daemon can route by thread root.
           const slashContent = threadId
             ? {

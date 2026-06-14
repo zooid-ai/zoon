@@ -14,7 +14,7 @@ describe("parseSlashCommand", () => {
   it("parses /clear in thread mode", () => {
     const result = parseSlashCommand("/clear", { threadScoped: true });
     expect(result).not.toBeNull();
-    expect(result?.eventType).toBe("eco.zoon.session_reset");
+    expect(result?.eventType).toBe("dev.zooid.session_reset");
   });
 
   it("returns null for /new in room mode", () => {
@@ -24,7 +24,7 @@ describe("parseSlashCommand", () => {
   it("parses /new in thread mode", () => {
     const result = parseSlashCommand("/new", { threadScoped: true });
     expect(result).not.toBeNull();
-    expect(result?.eventType).toBe("eco.zoon.session_reset");
+    expect(result?.eventType).toBe("dev.zooid.session_reset");
   });
 
   it("returns null for unknown slash commands", () => {
@@ -39,13 +39,13 @@ describe("parseSlashCommand", () => {
 
   it("parses /interrupt in thread mode", () => {
     const result = parseSlashCommand("/interrupt", { threadScoped: true });
-    expect(result?.eventType).toBe("eco.zoon.interrupt");
+    expect(result?.eventType).toBe("dev.zooid.interrupt");
     expect(result?.content).toEqual({});
   });
 
   it("parses /stop as an alias for /interrupt", () => {
     const result = parseSlashCommand("/stop", { threadScoped: true });
-    expect(result?.eventType).toBe("eco.zoon.interrupt");
+    expect(result?.eventType).toBe("dev.zooid.interrupt");
   });
 
   it("captures /interrupt args as a 'reason' field", () => {

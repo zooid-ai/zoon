@@ -32,7 +32,7 @@ export async function loginWithPassword(
       type: "m.login.password",
       identifier: { type: "m.id.user", user: username },
       password,
-      initial_device_display_name: "Zoon Web",
+      initial_device_display_name: "Zooid Web",
     }),
   });
   if (!res.ok) throw await matrixError(res);
@@ -49,7 +49,7 @@ export async function exchangeLoginToken(
     body: JSON.stringify({
       type: "m.login.token",
       token: loginToken,
-      initial_device_display_name: "Zoon Web",
+      initial_device_display_name: "Zooid Web",
     }),
   });
   if (!res.ok) throw await matrixError(res);

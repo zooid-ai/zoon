@@ -1,8 +1,8 @@
 import type { MatrixEvent } from "matrix-js-sdk";
 import { ApprovalEventType } from "../../events/approval";
-import { decodeEcoZoonEvent, isEcoZoonLifecycle } from "../../events/eco-zoon";
+import { decodeZooidEvent, isZooidLifecycle } from "../../events/zooid-events";
 import { ApprovalCard } from "./approval-card";
-import { EcoZoonEventTile } from "./eco-zoon-event";
+import { ZooidEventTile } from "./zooid-event";
 import { ErrorTile } from "./error-tile";
 import { MediaMessage } from "./media-message";
 import { MembershipEvent } from "./membership-event";
@@ -39,7 +39,7 @@ export function EventTile({
   // Approval *responses* are not rendered as their own tile — they only matter
   // as input to <ApprovalCard /> resolution. Skip silently.
   if (event.getType() === ApprovalEventType.Response) return null;
-  if (event.getType() === "eco.zoon.session_reset") {
+  if (event.getType() === "dev.zooid.session_reset") {
     return (
       <div className="flex items-center gap-2 py-3 text-xs uppercase tracking-wider text-muted-foreground">
         <div className="h-px flex-1 bg-border" />
@@ -51,14 +51,14 @@ export function EventTile({
   if (event.getType() === "m.room.member") {
     return <MembershipEvent event={event} />;
   }
-  if (isEcoZoonLifecycle(event)) {
-    const decoded = decodeEcoZoonEvent(event);
+  if (isZooidLifecycle(event)) {
+    const decoded = decodeZooidEvent(event);
     if (!decoded) return null;
     if (decoded.kind === "error") {
       return <ErrorTile decoded={decoded} />;
     }
     return (
-      <EcoZoonEventTile
+      <ZooidEventTile
         decoded={decoded}
         sender={event.getSender() ?? "?"}
         roomId={event.getRoomId() ?? ""}

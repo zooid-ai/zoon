@@ -97,7 +97,7 @@ describe("useMyPowerLevel", () => {
           users_default: 0,
           events_default: 0,
           state_default: 50,
-          events: { "eco.zoon.workspace": 100, "eco.zoon.approval_response": 0 },
+          events: { "dev.zooid.workspace": 100, "dev.zooid.approval_response": 0 },
         },
       }),
     );
@@ -105,8 +105,8 @@ describe("useMyPowerLevel", () => {
     MatrixClientPeg.injectClientForTest(client);
 
     const { result } = renderHook(() => useMyPowerLevel(roomId));
-    expect(result.current.canSendEvent("eco.zoon.workspace")).toBe(false);
-    expect(result.current.canSendEvent("eco.zoon.approval_response")).toBe(true);
+    expect(result.current.canSendEvent("dev.zooid.workspace")).toBe(false);
+    expect(result.current.canSendEvent("dev.zooid.approval_response")).toBe(true);
   });
 
   it("exposes canKick / canBan from the kick/ban thresholds", () => {

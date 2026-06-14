@@ -36,16 +36,16 @@ export function planEntriesFromToolInput(input: unknown): PlanBoardEntry[] | nul
   return null;
 }
 
-export const EcoZoonEventType = {
-  SessionStart: "eco.zoon.session.start",
-  TurnStart: "eco.zoon.turn.start",
-  AgentMessageChunk: "eco.zoon.agent_message_chunk",
-  ToolCall: "eco.zoon.tool_call",
-  ToolCallUpdate: "eco.zoon.tool_call_update",
-  Plan: "eco.zoon.plan",
-  TurnEnd: "eco.zoon.turn.end",
-  Error: "eco.zoon.error",
-  AvailableCommandsUpdate: "eco.zoon.available_commands_update",
+export const ZooidEventType = {
+  SessionStart: "dev.zooid.session.start",
+  TurnStart: "dev.zooid.turn.start",
+  AgentMessageChunk: "dev.zooid.agent_message_chunk",
+  ToolCall: "dev.zooid.tool_call",
+  ToolCallUpdate: "dev.zooid.tool_call_update",
+  Plan: "dev.zooid.plan",
+  TurnEnd: "dev.zooid.turn.end",
+  Error: "dev.zooid.error",
+  AvailableCommandsUpdate: "dev.zooid.available_commands_update",
 } as const;
 
 export interface ToolLocation {
@@ -91,7 +91,7 @@ export function extractToolCallContent(v: unknown): ToolCallContentParts {
   return { text: texts.length > 0 ? texts.join("\n") : null, diffs };
 }
 
-export type DecodedEcoZoonEvent =
+export type DecodedZooidEvent =
   | { kind: "session.start"; sessionId: string }
   | { kind: "turn.start"; sessionId: string }
   | { kind: "agent_message_chunk"; sessionId: string; content: string }
@@ -133,30 +133,30 @@ export type DecodedEcoZoonEvent =
       recovery?: string;
     };
 
-const lifecycleTypes: ReadonlySet<string> = new Set(Object.values(EcoZoonEventType));
+const lifecycleTypes: ReadonlySet<string> = new Set(Object.values(ZooidEventType));
 
-export function isEcoZoonLifecycle(ev: MatrixEvent): boolean {
+export function isZooidLifecycle(ev: MatrixEvent): boolean {
   return lifecycleTypes.has(ev.getType());
 }
 
 export function isAgentMessageChunk(ev: MatrixEvent): boolean {
-  return ev.getType() === EcoZoonEventType.AgentMessageChunk;
+  return ev.getType() === ZooidEventType.AgentMessageChunk;
 }
 
 export function isToolCall(ev: MatrixEvent): boolean {
-  return ev.getType() === EcoZoonEventType.ToolCall;
+  return ev.getType() === ZooidEventType.ToolCall;
 }
 
 export function isTurnEnd(ev: MatrixEvent): boolean {
-  return ev.getType() === EcoZoonEventType.TurnEnd;
+  return ev.getType() === ZooidEventType.TurnEnd;
 }
 
-export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null {
+export function decodeZooidEvent(ev: MatrixEvent): DecodedZooidEvent | null {
   const c = ev.getContent() as Record<string, unknown>;
   const type = ev.getType();
 
   // Error events allow sessionId to be null (pre-turn failures).
-  if (type === EcoZoonEventType.Error) {
+  if (type === ZooidEventType.Error) {
     if (typeof c.code !== "string" || typeof c.message !== "string") return null;
     return {
       kind: "error",
@@ -178,18 +178,18 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
   if (!sessionId) return null;
 
   switch (type) {
-    case EcoZoonEventType.SessionStart:
+    case ZooidEventType.SessionStart:
       return { kind: "session.start", sessionId };
 
-    case EcoZoonEventType.TurnStart:
+    case ZooidEventType.TurnStart:
       return { kind: "turn.start", sessionId };
 
-    case EcoZoonEventType.AgentMessageChunk: {
+    case ZooidEventType.AgentMessageChunk: {
       if (typeof c.content !== "string") return null;
       return { kind: "agent_message_chunk", sessionId, content: c.content };
     }
 
-    case EcoZoonEventType.ToolCall: {
+    case ZooidEventType.ToolCall: {
       const toolCallId = typeof c.tool_call_id === "string" ? c.tool_call_id : null;
       const title = typeof c.title === "string" ? c.title : null;
       const toolKind = typeof c.kind === "string" ? c.kind : null;
@@ -205,7 +205,7 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
       };
     }
 
-    case EcoZoonEventType.ToolCallUpdate: {
+    case ZooidEventType.ToolCallUpdate: {
       const toolCallId = typeof c.tool_call_id === "string" ? c.tool_call_id : null;
       const status = typeof c.status === "string" ? c.status : null;
       if (!toolCallId || !status) return null;
@@ -222,7 +222,7 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
       };
     }
 
-    case EcoZoonEventType.Plan: {
+    case ZooidEventType.Plan: {
       if (!Array.isArray(c.entries)) return null;
       const entries = (c.entries as unknown[])
         .map((e) => {
@@ -239,14 +239,14 @@ export function decodeEcoZoonEvent(ev: MatrixEvent): DecodedEcoZoonEvent | null 
       return { kind: "plan", sessionId, entries };
     }
 
-    case EcoZoonEventType.TurnEnd:
+    case ZooidEventType.TurnEnd:
       return {
         kind: "turn.end",
         sessionId,
         stopReason: typeof c.stop_reason === "string" ? c.stop_reason : undefined,
       };
 
-    case EcoZoonEventType.AvailableCommandsUpdate: {
+    case ZooidEventType.AvailableCommandsUpdate: {
       if (!Array.isArray(c.available_commands)) return null;
       const commands = (c.available_commands as unknown[])
         .map((x) => (x && typeof x === "object" ? (x as Record<string, unknown>) : null))

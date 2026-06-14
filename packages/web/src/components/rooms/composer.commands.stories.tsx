@@ -20,7 +20,7 @@ function seedCommandRoom() {
     mkMatrixEvent({
       roomId: ROOM_ID,
       sender: AGENT,
-      type: "eco.zoon.available_commands_update",
+      type: "dev.zooid.available_commands_update",
       content: {
         session_id: "s1",
         available_commands: [
