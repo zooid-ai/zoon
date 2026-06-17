@@ -10,7 +10,7 @@ See the [web client docs](https://zooid.dev/docs/concepts/client/) for the user-
 
 The fastest way to see the web client running is through the `zooid` CLI — `zooid dev` boots the whole local stack and serves this client for you, so you don't build or host it yourself.
 
-**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) (or Podman), [Node.js](https://nodejs.org) ≥ 22, and an ACP-compatible agent on your PATH — e.g. [Claude Code](https://www.claude.com/product/claude-code), Codex, [pi](https://agentclientprotocol.com), [opencode](https://opencode.ai), or [Goose](https://block.github.io/goose/).
+**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) (or Podman), [Node.js](https://nodejs.org) ≥ 22, and an ACP-compatible agent on your PATH — e.g. [Claude Code](https://www.claude.com/product/claude-code), Codex, GitHub Copilot CLI, Cursor CLI, Gemini CLI, [pi](https://agentclientprotocol.com), or [opencode](https://opencode.ai).
 
 Install the CLI:
 
