@@ -1,6 +1,7 @@
 import { EventType, type MatrixEvent, RoomStateEvent } from "matrix-js-sdk";
 import { useSyncExternalStore } from "react";
 import { MatrixClientPeg } from "../client/peg";
+import { subscribeRoomState } from "./matrix-subscriptions";
 
 export interface MyPowerLevel {
   level: number;
@@ -62,18 +63,7 @@ function snapshot(roomId: string): MyPowerLevel {
 
 export function useMyPowerLevel(roomId: string): MyPowerLevel {
   return useSyncExternalStore(
-    (cb) => {
-      const client = MatrixClientPeg.safeGet();
-      const room = client?.getRoom(roomId);
-      if (!room) return MatrixClientPeg.subscribe(cb);
-      const onState = () => cb();
-      room.currentState.on(RoomStateEvent.Events, onState);
-      const unsubPeg = MatrixClientPeg.subscribe(cb);
-      return () => {
-        room.currentState.off(RoomStateEvent.Events, onState);
-        unsubPeg();
-      };
-    },
+    (cb) => subscribeRoomState(roomId, [RoomStateEvent.Events], cb),
     () => snapshot(roomId),
     () => EMPTY,
   );

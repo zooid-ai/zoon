@@ -3,10 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeFakeClient, makeRoom, mkMatrixEvent } from "../../../test/factories";
 import { MatrixClientPeg } from "../../client/peg";
+import type { MemberRole } from "../../hooks/use-member-roles";
+import { roleForLevel } from "../../lib/roles";
 import { MemberRow } from "./member-row";
 
 const me = "@me:h.example";
 const roomId = "!r:h.example";
+
+// The parent panel resolves each member's role and passes it down; mirror that
+// here so the row renders the role under test.
+function memberAt(userId: string, powerLevel: number): MemberRole {
+  return { userId, displayName: userId, powerLevel, role: roleForLevel(powerLevel) };
+}
 
 function makeMembership(userId: string) {
   return mkMatrixEvent({
@@ -39,19 +47,19 @@ afterEach(() => MatrixClientPeg.reset());
 describe("MemberRow roles", () => {
   it("shows each member's role label", () => {
     setup({ [me]: 100, "@bob:h.example": 0 });
-    render(<MemberRow roomId={roomId} userId="@bob:h.example" />);
+    render(<MemberRow roomId={roomId} userId="@bob:h.example" member={memberAt("@bob:h.example", 0)} />);
     expect(screen.getByText("Default")).toBeInTheDocument();
   });
 
   it("renders an editable selector when the viewer outranks the target", () => {
     setup({ [me]: 100, "@bob:h.example": 0 });
-    render(<MemberRow roomId={roomId} userId="@bob:h.example" />);
+    render(<MemberRow roomId={roomId} userId="@bob:h.example" member={memberAt("@bob:h.example", 0)} />);
     expect(screen.getByRole("button", { name: /member actions/i })).toBeEnabled();
   });
 
   it("renders a static, non-interactive role for a peer at or above the viewer", () => {
     setup({ [me]: 50, "@peer:h.example": 50 });
-    render(<MemberRow roomId={roomId} userId="@peer:h.example" />);
+    render(<MemberRow roomId={roomId} userId="@peer:h.example" member={memberAt("@peer:h.example", 50)} />);
     expect(screen.queryByRole("button", { name: /moderator/i })).toBeNull();
     expect(screen.getByText("Moderator")).toBeInTheDocument();
   });
@@ -59,14 +67,14 @@ describe("MemberRow roles", () => {
   it("disables the selector entirely when the viewer cannot send power_levels", () => {
     // viewer at 0, state_default 50 → no edit anywhere
     setup({ [me]: 0, "@bob:h.example": 0 });
-    render(<MemberRow roomId={roomId} userId="@bob:h.example" />);
+    render(<MemberRow roomId={roomId} userId="@bob:h.example" member={memberAt("@bob:h.example", 0)} />);
     expect(screen.queryByRole("button", { name: /default/i })).toBeNull();
     expect(screen.getByText("Default")).toBeInTheDocument();
   });
 
   it("writes the chosen role's level on selection", async () => {
     const { sendStateEvent } = setup({ [me]: 100, "@bob:h.example": 0 });
-    render(<MemberRow roomId={roomId} userId="@bob:h.example" />);
+    render(<MemberRow roomId={roomId} userId="@bob:h.example" member={memberAt("@bob:h.example", 0)} />);
     await userEvent.click(screen.getByRole("button", { name: /member actions/i }));
     await userEvent.click(await screen.findByRole("menuitemradio", { name: /moderator/i }));
     expect(sendStateEvent).toHaveBeenCalledTimes(1);
@@ -76,7 +84,7 @@ describe("MemberRow roles", () => {
 
   it("disables role options above the viewer's own level", async () => {
     setup({ [me]: 50, "@bob:h.example": 0 });
-    render(<MemberRow roomId={roomId} userId="@bob:h.example" />);
+    render(<MemberRow roomId={roomId} userId="@bob:h.example" member={memberAt("@bob:h.example", 0)} />);
     await userEvent.click(screen.getByRole("button", { name: /member actions/i }));
     const admin = await screen.findByRole("menuitemradio", { name: /admin/i });
     expect(admin).toHaveAttribute("aria-disabled", "true");

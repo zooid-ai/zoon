@@ -1,7 +1,6 @@
-import { UserEvent } from "matrix-js-sdk";
-import type { MatrixEvent, User } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { MatrixClientPeg } from "../client/peg";
+import { subscribeUserPresence } from "./matrix-subscriptions";
 
 export interface PresenceState {
   presence: "online" | "offline" | "unavailable";
@@ -23,28 +22,10 @@ export function usePresence(userId: string): PresenceState {
   const [state, setState] = useState<PresenceState>(() => readPresence(userId));
 
   useEffect(() => {
-    const client = MatrixClientPeg.safeGet();
-    if (!client) return;
-
-    const update = () => setState(readPresence(userId));
-
-    // Subscribe directly on the User object if it already exists.
-    const user = client.getUser(userId);
-    if (user) {
-      user.on(UserEvent.Presence, update);
-    }
-
-    // Also listen at the client level: the SDK re-emits UserEvent.Presence for
-    // all users (including ones whose User object didn't exist on mount).
-    const clientUpdate = (_event: MatrixEvent | null | undefined, presenceUser: User) => {
-      if (presenceUser.userId === userId) update();
-    };
-    client.on(UserEvent.Presence, clientUpdate);
-
-    return () => {
-      user?.off(UserEvent.Presence, update);
-      client.off(UserEvent.Presence, clientUpdate);
-    };
+    setState(readPresence(userId));
+    // Shared, refcounted presence fan-out: one client-level listener serves all
+    // rows instead of one per component (which leaks on big member lists).
+    return subscribeUserPresence(userId, () => setState(readPresence(userId)));
   }, [userId]);
 
   return state;

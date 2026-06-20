@@ -33,6 +33,20 @@ if (typeof globalThis.ResizeObserver === "undefined") {
     ResizeObserverPolyfill;
 }
 
+// happy-dom reports 0 for layout dimensions, so @tanstack/react-virtual's
+// scroll container measures as a zero-height viewport and windows out every
+// row. Give elements a non-zero offset size so virtualized lists render their
+// (small) test datasets. Only offsetWidth/offsetHeight are shimmed — the
+// timeline auto-scroll reads scrollHeight/clientHeight, which we leave alone.
+for (const prop of ["offsetWidth", "offsetHeight"] as const) {
+  Object.defineProperty(HTMLElement.prototype, prop, {
+    configurable: true,
+    get() {
+      return 1000;
+    },
+  });
+}
+
 // jsdom does not implement scrollIntoView; cmdk's <Command> calls it on
 // each mount of CommandItem to keep the active item visible.
 if (

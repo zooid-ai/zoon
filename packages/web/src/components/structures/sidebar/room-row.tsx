@@ -22,12 +22,12 @@ export function RoomRow({ room }: RoomRowProps) {
   const isUnread = total > 0;
 
   return (
-    <div className="group/row flex items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent">
-      <Link to={`/room/${room.roomId}`} className="flex flex-1 items-center gap-2 truncate">
-        <Avatar className="size-6">
+    <div className="group/row flex min-w-0 items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent">
+      <Link to={`/room/${room.roomId}`} className="flex min-w-0 flex-1 items-center gap-2">
+        <Avatar className="size-6 shrink-0">
           <AvatarFallback>{(room.name ?? room.roomId).slice(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
-        <span className={`truncate ${isUnread ? "font-semibold" : ""}`}>
+        <span className={`min-w-0 truncate ${isUnread ? "font-semibold" : ""}`}>
           {room.name || room.roomId}
         </span>
       </Link>

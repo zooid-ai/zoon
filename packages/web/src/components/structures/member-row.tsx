@@ -2,7 +2,7 @@ import { Ban, DoorOpen, MoreHorizontal, X } from "lucide-react";
 import { useState } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 import { MatrixClientPeg } from "../../client/peg";
-import { useMemberRoles } from "../../hooks/use-member-roles";
+import type { MemberRole } from "../../hooks/use-member-roles";
 import { useMyPowerLevel } from "../../hooks/use-my-power-level";
 import { usePresence } from "../../hooks/use-presence";
 import { useSetPowerLevel } from "../../hooks/use-set-power-level";
@@ -31,15 +31,21 @@ import { Input } from "../ui/input";
 export function MemberRow({
   roomId,
   userId,
+  member,
   membership = "join",
 }: {
   roomId: string;
   userId: string;
+  /**
+   * The member's resolved role/power level, supplied by the parent so the row
+   * doesn't re-derive the whole room. Undefined for pending invites (not yet
+   * joined) and for callers that render a row without role context.
+   */
+  member?: MemberRole;
   membership?: "join" | "invite";
 }) {
   const { presence } = usePresence(userId);
   const name = useUserName(userId, roomId);
-  const roles = useMemberRoles(roomId);
   const myPL = useMyPowerLevel(roomId);
   const me = MatrixClientPeg.safeGet()?.getUserId();
 
@@ -70,7 +76,7 @@ export function MemberRow({
     );
   }
 
-  const entry = roles.find((r) => r.userId === userId);
+  const entry = member;
   const role = entry?.role ?? roleForLevel(0);
   const isSelf = userId === me;
 

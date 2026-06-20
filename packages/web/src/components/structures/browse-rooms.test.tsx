@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,7 +35,9 @@ describe("<BrowseRooms>", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText("general")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /join/i }));
+    // Scope to the joinable-room list; the page also has a "Join by alias" button.
+    const list = screen.getByRole("list");
+    await userEvent.click(within(list).getByRole("button", { name: /join/i }));
     await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("!gen:h.example"));
   });
 });

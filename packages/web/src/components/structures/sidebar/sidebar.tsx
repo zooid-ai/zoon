@@ -9,7 +9,6 @@ import { useMyPowerLevel } from "../../../hooks/use-my-power-level";
 import { useRoomList } from "../../../hooks/use-room-list";
 import { useSectionUnread } from "../../../hooks/use-section-unread";
 import { useSpaceChildren } from "../../../hooks/use-space-children";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateDmDialog } from "../../dialogs/create-dm";
 import { CreateRoomDialog } from "../../dialogs/create-room";
 import { InvitesSection } from "./invites-section";
@@ -34,7 +33,8 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
   const allRooms = useRoomList();
   const myPL = useMyPowerLevel(spaceId);
   const canCreateRoom = scope.kind === "space" && myPL.canSendStateEvent("m.space.child");
-  const canBrowse = scope.kind === "space";
+  // Always available: the browse page also offers join-by-alias, which works without a space.
+  const canBrowse = true;
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [createDmOpen, setCreateDmOpen] = useState(false);
   const navigate = useNavigate();
@@ -61,7 +61,10 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
   const roomUnread = useSectionUnread(roomList);
 
   return (
-    <ScrollArea className="h-full">
+    // Plain scroll container, not Radix ScrollArea: its viewport wraps content in a
+    // display:table div that grows to content width, defeating min-w-0/truncate on long
+    // room names. SidebarContent already supplies the outer overflow.
+    <div className="h-full overflow-y-auto">
       <div className="flex flex-col gap-2 p-2">
         <InvitesSection />
         <Section
@@ -161,6 +164,6 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
           onOpenChange={setCreateDmOpen}
         />
       ) : null}
-    </ScrollArea>
+    </div>
   );
 }
