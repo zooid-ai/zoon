@@ -14,7 +14,7 @@ import { MatrixClientPeg } from "./client/peg";
 import { AuthCallback } from "./components/auth/auth-callback";
 import { Login } from "./components/auth/login";
 import { Register } from "./components/auth/register";
-import { BrowseRoomsRoute } from "./components/structures/browse-rooms";
+import { SearchPageRoute } from "./components/structures/search-page";
 import { EmptyRoom } from "./components/structures/empty-room";
 import { InvitesPage } from "./components/structures/invites-page";
 import { LoggedInView } from "./components/structures/logged-in-view";
@@ -38,6 +38,13 @@ export function App({
   useEffect(() => {
     const creds = MatrixClientPeg.restoreFromStorage();
     if (!creds) {
+      setRestored(true);
+      return;
+    }
+    // Discard a session that belongs to a different homeserver — it will only
+    // produce network errors against the newly-configured URL.
+    if (creds.homeserverUrl !== config.homeserverUrl) {
+      MatrixClientPeg.reset();
       setRestored(true);
       return;
     }
@@ -115,7 +122,7 @@ function AppRoutes({ config }: { config: AppConfig }) {
       >
         <Route index element={<EmptyRoom />} />
         <Route path="room/:roomId" element={<RoomView />} />
-        <Route path="browse" element={<BrowseRoomsRoute />} />
+        <Route path="search" element={<SearchPageRoute />} />
         <Route path="invites" element={<InvitesPage />} />
       </Route>
       <Route

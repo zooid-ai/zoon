@@ -2,14 +2,22 @@ import "@/index.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App, type AppConfig } from "./app";
+import { BootstrapError } from "@/components/bootstrap-error";
 import { ThemeProvider } from "@/components/theme-provider";
 import { discoverHomeserver } from "./client/homeserver-discovery";
+import { resolveGlobalSearch, setGlobalSearchEnabled } from "./client/feature-flags";
 import { loadRuntimeConfig } from "./client/runtime-config";
 
 const buildtimeUrl = (import.meta.env.VITE_MATRIX_HOMESERVER_URL as string | undefined) ?? null;
 
 async function bootstrap() {
   const runtime = await loadRuntimeConfig();
+  setGlobalSearchEnabled(
+    resolveGlobalSearch({
+      runtime: runtime?.global_search,
+      buildtime: import.meta.env.VITE_GLOBAL_SEARCH as string | undefined,
+    }),
+  );
   const homeserverUrl = await discoverHomeserver({
     mxid: null,
     runtimeConfig: runtime,
@@ -36,5 +44,11 @@ async function bootstrap() {
 bootstrap().catch((e) => {
   // eslint-disable-next-line no-console
   console.error("Bootstrap failed:", e);
-  document.body.innerHTML = `<pre>Bootstrap failed: ${String(e?.message ?? e)}</pre>`;
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <ThemeProvider defaultTheme="system">
+        <BootstrapError error={e} />
+      </ThemeProvider>
+    </StrictMode>,
+  );
 });

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Meta } from "@storybook/react-vite";
 import { UserAvatar } from "@/components/user-avatar";
 import { senderColor } from "@/lib/sender";
 import { DateDivider } from "./date-divider";
@@ -43,11 +43,11 @@ const meta = {
 } satisfies Meta<typeof MessageTile>;
 
 export default meta;
-type Story = StoryObj<typeof meta>;
 
 // A mini timeline spanning two days, showing per-message relative timestamps
 // and the day-boundary divider.
-export const TimelineWithDayBoundary: Story = {
+// Custom render ignores the MessageTile args — the whole timeline is constructed inline.
+export const TimelineWithDayBoundary = {
   render: () => {
     const now = Date.now();
     return (

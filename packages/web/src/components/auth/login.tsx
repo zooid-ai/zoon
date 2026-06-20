@@ -14,6 +14,14 @@ import {
 import { MatrixClientPeg } from "../../client/peg";
 import { registrationSupported } from "../../client/register";
 
+function homeserverHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
 interface LoginProps {
   homeserverUrl: string;
   defaultIdpLabel: string | null;
@@ -104,7 +112,7 @@ export function Login({ homeserverUrl, defaultIdpLabel }: LoginProps) {
     <div className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
+          <CardTitle>Sign in to {homeserverHost(homeserverUrl)}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {error && (

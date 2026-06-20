@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { MatrixClientPeg } from "../client/peg";
+import { clientExt } from "../client/client-ext";
 
 interface ActiveSpace {
   ready: boolean;
@@ -16,9 +17,7 @@ export function useActiveSpaceId(spaceLocalpart: string, serverName: string): Ac
       if (!client) return;
       const alias = `#${spaceLocalpart}:${serverName}`;
       try {
-        const resolved = await (
-          client as unknown as { getRoomIdForAlias: (a: string) => Promise<{ room_id: string } | null> }
-        ).getRoomIdForAlias(alias);
+        const resolved = await clientExt(client).getRoomIdForAlias(alias);
         if (cancelled) return;
         if (!resolved) {
           setState({ ready: true, spaceId: null });
@@ -26,7 +25,7 @@ export function useActiveSpaceId(spaceLocalpart: string, serverName: string): Ac
         }
         const roomId = resolved.room_id;
         if (!client.getRoom(roomId)) {
-          await (client as unknown as { joinRoom: (a: string) => Promise<unknown> }).joinRoom(alias);
+          await clientExt(client).joinRoom(alias);
         }
         if (!cancelled) setState({ ready: true, spaceId: roomId });
       } catch {
