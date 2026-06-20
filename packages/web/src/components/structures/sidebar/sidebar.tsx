@@ -1,7 +1,6 @@
-import { Compass, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { type Room } from "matrix-js-sdk";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDirectRooms } from "../../../hooks/use-direct-rooms";
 import { useFavoriteRooms } from "../../../hooks/use-favorite-rooms";
@@ -15,6 +14,7 @@ import { InvitesSection } from "./invites-section";
 import { RoomRow } from "./room-row";
 import type { Scope } from "./scope";
 import { Section } from "./section";
+import { SidebarSearchBar } from "./sidebar-search-bar";
 import { UnreadBadge } from "./unread-badge";
 
 const ICON_BTN_CLS =
@@ -33,11 +33,8 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
   const allRooms = useRoomList();
   const myPL = useMyPowerLevel(spaceId);
   const canCreateRoom = scope.kind === "space" && myPL.canSendStateEvent("m.space.child");
-  // Always available: the browse page also offers join-by-alias, which works without a space.
-  const canBrowse = true;
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [createDmOpen, setCreateDmOpen] = useState(false);
-  const navigate = useNavigate();
 
   // First-claim ordering: Favorites → DMs → Rooms.
   const claimed = new Set<string>();
@@ -66,6 +63,7 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
     // room names. SidebarContent already supplies the outer overflow.
     <div className="h-full overflow-y-auto">
       <div className="flex flex-col gap-2 p-2">
+        <SidebarSearchBar />
         <InvitesSection />
         <Section
           title="Favorites"
@@ -81,21 +79,6 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
             <TooltipProvider>
             <div className="flex items-center gap-1">
               <UnreadBadge total={roomUnread.total} highlight={roomUnread.highlight} />
-              {canBrowse ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label="browse rooms"
-                      onClick={() => navigate("/browse")}
-                      className={ICON_BTN_CLS}
-                    >
-                      <Compass className="size-3" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Browse rooms</TooltipContent>
-                </Tooltip>
-              ) : null}
               {canCreateRoom ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -118,15 +101,6 @@ export function Sidebar({ scope, workforceSpaceId }: SidebarProps) {
           {roomList.map((r) => (
             <RoomRow key={r.roomId} room={r} />
           ))}
-          {canBrowse && roomList.length === 0 ? (
-            <button
-              type="button"
-              onClick={() => navigate("/browse")}
-              className="w-full rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Browse rooms…
-            </button>
-          ) : null}
         </Section>
         <Section
           title="DMs"

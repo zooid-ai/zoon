@@ -14,7 +14,7 @@ import { MatrixClientPeg } from "./client/peg";
 import { AuthCallback } from "./components/auth/auth-callback";
 import { Login } from "./components/auth/login";
 import { Register } from "./components/auth/register";
-import { BrowseRoomsRoute } from "./components/structures/browse-rooms";
+import { SearchPageRoute } from "./components/structures/search-page";
 import { EmptyRoom } from "./components/structures/empty-room";
 import { InvitesPage } from "./components/structures/invites-page";
 import { LoggedInView } from "./components/structures/logged-in-view";
@@ -115,7 +115,7 @@ function AppRoutes({ config }: { config: AppConfig }) {
       >
         <Route index element={<EmptyRoom />} />
         <Route path="room/:roomId" element={<RoomView />} />
-        <Route path="browse" element={<BrowseRoomsRoute />} />
+        <Route path="search" element={<SearchPageRoute />} />
         <Route path="invites" element={<InvitesPage />} />
       </Route>
       <Route

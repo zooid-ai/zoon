@@ -33,4 +33,20 @@ describe("loadRuntimeConfig", () => {
     const cfg = await loadRuntimeConfig();
     expect(cfg?.homeserver_url).toBe("https://h.example");
   });
+
+  it("parses the global_search opt-out flag", async () => {
+    mswServer.use(
+      http.get("/config.json", () => HttpResponse.json({ global_search: false })),
+    );
+    const cfg = await loadRuntimeConfig();
+    expect(cfg).toEqual({ global_search: false });
+  });
+
+  it("ignores a non-boolean global_search", async () => {
+    mswServer.use(
+      http.get("/config.json", () => HttpResponse.json({ global_search: "yes" })),
+    );
+    const cfg = await loadRuntimeConfig();
+    expect(cfg).toEqual({});
+  });
 });

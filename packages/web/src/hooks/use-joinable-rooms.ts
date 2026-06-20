@@ -1,21 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { MatrixClientPeg } from "../client/peg";
+import { clientExt } from "../client/client-ext";
 
 export interface JoinableRoom {
   roomId: string;
   name?: string;
   topic?: string;
   memberCount: number;
-}
-
-interface Hierarchy {
-  rooms: Array<{
-    room_id: string;
-    name?: string;
-    topic?: string;
-    num_joined_members?: number;
-    room_type?: string;
-  }>;
 }
 
 /**
@@ -32,10 +23,7 @@ export function useJoinableRooms(spaceId: string, enabled: boolean) {
     if (!client || !spaceId) return;
     setLoading(true);
     try {
-      const res =
-        (await (
-          client as unknown as { getRoomHierarchy: (id: string) => Promise<Hierarchy> }
-        ).getRoomHierarchy(spaceId)) ?? { rooms: [] };
+      const res = (await clientExt(client).getRoomHierarchy(spaceId)) ?? { rooms: [] };
       const joinable = res.rooms
         .filter((r) => r.room_id !== spaceId && r.room_type !== "m.space")
         .filter((r) => !client.getRoom(r.room_id))

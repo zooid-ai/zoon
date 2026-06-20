@@ -4,12 +4,19 @@ import { createRoot } from "react-dom/client";
 import { App, type AppConfig } from "./app";
 import { ThemeProvider } from "@/components/theme-provider";
 import { discoverHomeserver } from "./client/homeserver-discovery";
+import { resolveGlobalSearch, setGlobalSearchEnabled } from "./client/feature-flags";
 import { loadRuntimeConfig } from "./client/runtime-config";
 
 const buildtimeUrl = (import.meta.env.VITE_MATRIX_HOMESERVER_URL as string | undefined) ?? null;
 
 async function bootstrap() {
   const runtime = await loadRuntimeConfig();
+  setGlobalSearchEnabled(
+    resolveGlobalSearch({
+      runtime: runtime?.global_search,
+      buildtime: import.meta.env.VITE_GLOBAL_SEARCH as string | undefined,
+    }),
+  );
   const homeserverUrl = await discoverHomeserver({
     mxid: null,
     runtimeConfig: runtime,

@@ -1,19 +1,25 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeFakeClient } from "../../../test/factories";
 import { MatrixClientPeg } from "../../client/peg";
-import { BrowseRooms } from "./browse-rooms";
+import { setGlobalSearchEnabled } from "../../client/feature-flags";
+import { SearchPage } from "./search-page";
 
 const me = "@me:h.example";
 const spaceId = "!space:h.example";
-afterEach(() => MatrixClientPeg.reset());
+
+beforeEach(() => setGlobalSearchEnabled(false)); // isolate to This space tab only
+afterEach(() => {
+  MatrixClientPeg.reset();
+  setGlobalSearchEnabled(true);
+});
 
 function setup() {
-  const joinRoom = vi.fn(async () => ({}));
+  const joinRoom = vi.fn(async () => ({ roomId: "!gen:h.example" }));
   const client = makeFakeClient({ userId: me });
-  (client as unknown as { getRoom: () => unknown }).getRoom = () => null; // none joined
+  (client as unknown as { getRoom: () => unknown }).getRoom = () => null;
   (client as unknown as { getRoomHierarchy: () => Promise<{ rooms: unknown[] }> }).getRoomHierarchy =
     vi.fn(async () => ({
       rooms: [
@@ -26,16 +32,18 @@ function setup() {
   return { joinRoom };
 }
 
-describe("<BrowseRooms>", () => {
+describe("<SearchPage> This space tab (was BrowseRooms)", () => {
   it("lists joinable rooms and joins on click", async () => {
     const { joinRoom } = setup();
     render(
-      <MemoryRouter>
-        <BrowseRooms spaceId={spaceId} />
+      <MemoryRouter initialEntries={["/search"]}>
+        <Routes>
+          <Route path="/search" element={<SearchPage spaceId={spaceId} />} />
+          <Route path="/room/:roomId" element={<span />} />
+        </Routes>
       </MemoryRouter>,
     );
     expect(await screen.findByText("general")).toBeInTheDocument();
-    // Scope to the joinable-room list; the page also has a "Join by alias" button.
     const list = screen.getByRole("list");
     await userEvent.click(within(list).getByRole("button", { name: /join/i }));
     await waitFor(() => expect(joinRoom).toHaveBeenCalledWith("!gen:h.example"));
