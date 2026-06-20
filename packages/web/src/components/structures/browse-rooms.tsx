@@ -8,15 +8,12 @@ import type { LoggedInOutletContext } from "./logged-in-view";
 /** Route wrapper: resolves the active space from the logged-in Outlet context. */
 export function BrowseRoomsRoute() {
   const { spaceId } = useOutletContext<LoggedInOutletContext>();
-  if (!spaceId) {
-    return <div className="p-6 text-sm text-muted-foreground">No space selected.</div>;
-  }
   return <BrowseRooms spaceId={spaceId} />;
 }
 
-export function BrowseRooms({ spaceId }: { spaceId: string }) {
-  const { rooms, loading, refresh } = useJoinableRooms(spaceId, true);
-  const spaceName = MatrixClientPeg.safeGet()?.getRoom(spaceId)?.name;
+export function BrowseRooms({ spaceId }: { spaceId: string | null }) {
+  const { rooms, loading, refresh } = useJoinableRooms(spaceId ?? "", Boolean(spaceId));
+  const spaceName = spaceId ? MatrixClientPeg.safeGet()?.getRoom(spaceId)?.name : undefined;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -25,20 +22,69 @@ export function BrowseRooms({ spaceId }: { spaceId: string }) {
         {spaceName && <p className="text-sm text-muted-foreground">{spaceName}</p>}
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
-        {loading && rooms.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Loading rooms…</p>
-        ) : rooms.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No rooms to join — you're already in all of them.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {rooms.map((room) => (
-              <RoomRow key={room.roomId} room={room} onJoined={refresh} />
-            ))}
-          </ul>
-        )}
+        <JoinByAlias />
+        {spaceId &&
+          (loading && rooms.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Loading rooms…</p>
+          ) : rooms.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No rooms to join — you're already in all of them.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {rooms.map((room) => (
+                <RoomRow key={room.roomId} room={room} onJoined={refresh} />
+              ))}
+            </ul>
+          ))}
       </div>
+    </div>
+  );
+}
+
+/** Join any room by its alias (#room:server) or room ID (!id:server). */
+function JoinByAlias() {
+  const [value, setValue] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const onJoin = async () => {
+    const target = value.trim();
+    if (!target) return;
+    const client = MatrixClientPeg.safeGet();
+    if (!client) return;
+    setJoining(true);
+    setError(null);
+    try {
+      const room = await (
+        client as unknown as { joinRoom: (id: string) => Promise<{ roomId: string }> }
+      ).joinRoom(target);
+      setValue("");
+      navigate(`/room/${room.roomId}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not join that room.");
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  return (
+    <div className="mb-6 flex flex-col gap-2">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && void onJoin()}
+          placeholder="#room:server or !roomid:server"
+          className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+        />
+        <Button size="sm" disabled={joining || !value.trim()} onClick={() => void onJoin()}>
+          Join
+        </Button>
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }

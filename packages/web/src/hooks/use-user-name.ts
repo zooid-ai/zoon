@@ -1,7 +1,8 @@
-import { type Room, RoomStateEvent, UserEvent } from "matrix-js-sdk";
+import { RoomStateEvent } from "matrix-js-sdk";
 import { useSyncExternalStore } from "react";
 import { MatrixClientPeg } from "../client/peg";
 import { displayNameOf, nameOfMember } from "../lib/sender";
+import { subscribeRoomState, subscribeUserDisplayName } from "./matrix-subscriptions";
 
 function snapshot(userId: string, roomId?: string): string {
   const client = MatrixClientPeg.safeGet();
@@ -24,22 +25,13 @@ function snapshot(userId: string, roomId?: string): string {
 export function useUserName(userId: string, roomId?: string): string {
   return useSyncExternalStore(
     (cb) => {
-      const unsubPeg = MatrixClientPeg.subscribe(cb);
-      const client = MatrixClientPeg.safeGet();
-      if (!client) return unsubPeg;
-
-      const room: Room | null = roomId ? client.getRoom(roomId) ?? null : null;
-      const onMember = () => cb();
-      room?.currentState.on(RoomStateEvent.Members, onMember);
-
-      const user = client.getUser(userId);
-      const onDisplayName = () => cb();
-      user?.on(UserEvent.DisplayName, onDisplayName);
-
+      const unsubUser = subscribeUserDisplayName(userId, cb);
+      const unsubRoom = roomId
+        ? subscribeRoomState(roomId, [RoomStateEvent.Members], cb)
+        : null;
       return () => {
-        room?.currentState.off(RoomStateEvent.Members, onMember);
-        user?.off(UserEvent.DisplayName, onDisplayName);
-        unsubPeg();
+        unsubUser();
+        unsubRoom?.();
       };
     },
     () => snapshot(userId, roomId),

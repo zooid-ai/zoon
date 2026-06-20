@@ -2,6 +2,7 @@ import { EventType, type Room, type RoomMember, RoomStateEvent } from "matrix-js
 import { useSyncExternalStore } from "react";
 import { MatrixClientPeg } from "../client/peg";
 import { type Role, roleForLevel } from "../lib/roles";
+import { subscribeRoomState } from "./matrix-subscriptions";
 
 export interface MemberRole {
   userId: string;
@@ -98,21 +99,8 @@ function snapshot(roomId: string): MemberRole[] {
 
 export function useMemberRoles(roomId: string): MemberRole[] {
   return useSyncExternalStore(
-    (cb) => {
-      const client = MatrixClientPeg.safeGet();
-      const room = client?.getRoom(roomId);
-      if (!room) return MatrixClientPeg.subscribe(cb);
-      const onChange = () => cb();
-      // Members change AND power_levels (a state event) change the result.
-      room.currentState.on(RoomStateEvent.Members, onChange);
-      room.currentState.on(RoomStateEvent.Events, onChange);
-      const unsubPeg = MatrixClientPeg.subscribe(cb);
-      return () => {
-        room.currentState.off(RoomStateEvent.Members, onChange);
-        room.currentState.off(RoomStateEvent.Events, onChange);
-        unsubPeg();
-      };
-    },
+    // Members change AND power_levels (a state event) change the result.
+    (cb) => subscribeRoomState(roomId, [RoomStateEvent.Members, RoomStateEvent.Events], cb),
     () => snapshot(roomId),
     () => EMPTY,
   );
