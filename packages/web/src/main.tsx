@@ -2,6 +2,7 @@ import "@/index.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App, type AppConfig } from "./app";
+import { BootstrapError } from "@/components/bootstrap-error";
 import { ThemeProvider } from "@/components/theme-provider";
 import { discoverHomeserver } from "./client/homeserver-discovery";
 import { resolveGlobalSearch, setGlobalSearchEnabled } from "./client/feature-flags";
@@ -43,5 +44,11 @@ async function bootstrap() {
 bootstrap().catch((e) => {
   // eslint-disable-next-line no-console
   console.error("Bootstrap failed:", e);
-  document.body.innerHTML = `<pre>Bootstrap failed: ${String(e?.message ?? e)}</pre>`;
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <ThemeProvider defaultTheme="system">
+        <BootstrapError error={e} />
+      </ThemeProvider>
+    </StrictMode>,
+  );
 });

@@ -41,6 +41,13 @@ export function App({
       setRestored(true);
       return;
     }
+    // Discard a session that belongs to a different homeserver — it will only
+    // produce network errors against the newly-configured URL.
+    if (creds.homeserverUrl !== config.homeserverUrl) {
+      MatrixClientPeg.reset();
+      setRestored(true);
+      return;
+    }
     let cancelled = false;
     void (async () => {
       // A session restored from storage may belong to a previous homeserver

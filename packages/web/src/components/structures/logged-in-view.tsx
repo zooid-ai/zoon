@@ -32,6 +32,8 @@ import { SpaceSwitcher } from "./sidebar/space-switcher";
 
 export interface LoggedInOutletContext {
   spaceId: string | null;
+  activeScope: Scope;
+  setScope: (scope: Scope) => void;
 }
 
 export function LoggedInView() {
@@ -121,7 +123,7 @@ export function LoggedInView() {
         <main className="flex-1 min-h-0 overflow-hidden">
           <div className="relative flex h-full min-h-0">
             <div className="min-w-0 flex-1 overflow-hidden">
-              <Outlet context={{ spaceId } satisfies LoggedInOutletContext} />
+              <Outlet context={{ spaceId, activeScope, setScope } satisfies LoggedInOutletContext} />
             </div>
             {roomId && rightPanel && (
               <RoomPanel

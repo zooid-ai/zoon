@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,25 @@ import { useGlobalSearchEnabled } from "../../client/feature-flags";
 import { useJoinableRooms } from "../../hooks/use-joinable-rooms";
 import { type PublicRoom, usePublicRooms } from "../../hooks/use-public-rooms";
 import { useJoinRoom } from "../../hooks/use-join-room";
+import type { Scope } from "./sidebar/scope";
 import type { LoggedInOutletContext } from "./logged-in-view";
 
 type TabValue = "this-space" | "all";
 
 /** Route wrapper: resolves the active space from the logged-in Outlet context. */
 export function SearchPageRoute() {
-  const { spaceId } = useOutletContext<LoggedInOutletContext>();
-  return <SearchPage spaceId={spaceId} />;
+  const { activeScope, setScope } = useOutletContext<LoggedInOutletContext>();
+  const spaceId = activeScope.kind === "space" ? activeScope.spaceId : null;
+  return <SearchPage spaceId={spaceId} setScope={setScope} />;
 }
 
-export function SearchPage({ spaceId }: { spaceId: string | null }) {
+export function SearchPage({
+  spaceId,
+  setScope,
+}: {
+  spaceId: string | null;
+  setScope?: (scope: Scope) => void;
+}) {
   const globalSearch = useGlobalSearchEnabled();
   const [term, setTerm] = useState("");
 
@@ -47,7 +55,7 @@ export function SearchPage({ spaceId }: { spaceId: string | null }) {
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <Tabs value={activeTab} onValueChange={(v) => setActive(v as TabValue)} tabs={tabs}>
           {activeTab === "this-space" && spaceId && <ThisSpaceTab spaceId={spaceId} term={term} />}
-          {activeTab === "all" && globalSearch && <AllRoomsTab term={term} />}
+          {activeTab === "all" && globalSearch && <AllRoomsTab term={term} setScope={setScope} />}
         </Tabs>
       </div>
     </div>
@@ -85,11 +93,10 @@ function ThisSpaceTab({ spaceId, term }: { spaceId: string; term: string }) {
   );
 }
 
-function AllRoomsTab({ term }: { term: string }) {
+function AllRoomsTab({ term, setScope }: { term: string; setScope?: (scope: Scope) => void }) {
   const { rooms, loading, error, hasMore, loadMore } = usePublicRooms(term);
   return (
     <div className="flex flex-col gap-3">
-      <JoinByAlias />
       {error && <p className="text-xs text-destructive">{error}</p>}
       {loading && rooms.length === 0 ? (
         <p className="text-sm text-muted-foreground">Searching…</p>
@@ -105,6 +112,7 @@ function AllRoomsTab({ term }: { term: string }) {
               topic={r.topic}
               memberCount={r.memberCount}
               isSpace={r.isSpace}
+              setScope={setScope}
             />
           ))}
         </ul>
@@ -125,6 +133,7 @@ function RoomRow({
   memberCount,
   isSpace = false,
   onJoined,
+  setScope,
 }: {
   roomId: string;
   name?: string;
@@ -132,18 +141,21 @@ function RoomRow({
   memberCount: number;
   isSpace?: boolean;
   onJoined?: () => void;
+  setScope?: (scope: Scope) => void;
 }) {
   const { joinRoom, joining } = useJoinRoom();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
   const onActivate = async () => {
     if (isSpace) {
-      // Join the space so it appears in SpaceSwitcher; auto scope-switch is follow-on (ZNC023).
       const client = MatrixClientPeg.safeGet();
       if (!client) return;
       setBusy(true);
       try {
         await clientExt(client).joinRoom(roomId);
+        setScope?.({ kind: "space", spaceId: roomId });
+        navigate("/");
       } finally {
         setBusy(false);
       }
@@ -154,8 +166,8 @@ function RoomRow({
   };
 
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-border p-3">
-      <div className="min-w-0 flex-1">
+    <li className="flex items-start gap-3 rounded-lg border border-border p-3">
+      <div className="min-w-0 flex-1 overflow-hidden">
         <p className="truncate text-sm font-medium">
           {name ?? roomId}
           {isSpace && (
@@ -164,7 +176,7 @@ function RoomRow({
             </Badge>
           )}
         </p>
-        {topic && <p className="truncate text-xs text-muted-foreground">{topic}</p>}
+        {topic && <p className="line-clamp-2 text-xs text-muted-foreground">{topic}</p>}
         <p className="text-xs text-muted-foreground">
           {memberCount} member{memberCount !== 1 ? "s" : ""}
         </p>
@@ -175,38 +187,9 @@ function RoomRow({
         disabled={joining || busy}
         onClick={() => void onActivate()}
       >
-        {isSpace ? "View" : "Join"}
+        Join
       </Button>
     </li>
   );
 }
 
-/** Join any room by alias (#room:server) or room ID (!id:server). Gated with the All rooms tab. */
-function JoinByAlias() {
-  const [value, setValue] = useState("");
-  const { joinRoom, joining, error } = useJoinRoom();
-
-  const onJoin = async () => {
-    const target = value.trim();
-    if (!target) return;
-    const joined = await joinRoom(target);
-    if (joined) setValue("");
-  };
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void onJoin()}
-          placeholder="#room:server or !roomid:server"
-        />
-        <Button size="sm" disabled={joining || !value.trim()} onClick={() => void onJoin()}>
-          Join
-        </Button>
-      </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
-  );
-}
