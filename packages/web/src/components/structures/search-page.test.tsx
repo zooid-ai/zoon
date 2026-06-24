@@ -120,7 +120,7 @@ describe("SearchPage", () => {
     renderPage("!space:h");
 
     await waitFor(() => expect(screen.getByText("Cosmos")).toBeInTheDocument());
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "View" })));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Join" })));
 
     expect((client as unknown as { joinRoom: ReturnType<typeof vi.fn> }).joinRoom).toHaveBeenCalledWith("!s:h");
     expect(screen.queryByTestId("path")).toBeNull(); // did NOT navigate to /room/*
