@@ -27,8 +27,8 @@ export function RoomBanner({
     <div
       className={
         emptyRoom
-          ? "flex min-h-full flex-col justify-end gap-2 px-6 pb-3 pt-10"
-          : "flex flex-col gap-2 px-6 pb-2 pt-8"
+          ? "flex min-h-full flex-col justify-end gap-2 px-4 pb-3 pt-10"
+          : "flex flex-col gap-2 px-4 pb-2 pt-8"
       }
     >
       <div className="flex items-center gap-2">

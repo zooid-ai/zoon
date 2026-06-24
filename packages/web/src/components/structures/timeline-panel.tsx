@@ -5,8 +5,6 @@ import { LoadMoreButton } from "../timeline/load-more-button";
 import { RoomBanner } from "./room-banner";
 import { MessagePanel } from "./message-panel";
 
-const PREFETCH_THRESHOLD = 5;
-
 export function TimelinePanel({
   roomId,
   onReplyInThread,
@@ -34,18 +32,16 @@ export function TimelinePanel({
     el.scrollTop = el.scrollHeight;
   }, [events]);
 
-  // One-shot prefetch on room open: if the room has a back-pagination token
-  // and we're showing fewer than PREFETCH_THRESHOLD events, walk back once so
-  // the timeline doesn't land near-empty when older history exists.
+  // One-shot prefetch on room open: walk back once so the timeline settles at
+  // the start of history before deciding whether to show the banner. Don't mark
+  // as prefetched when hasMore is false — the token may not have arrived yet
+  // (timing race on room switch), and we want to re-fire once it does.
   useEffect(() => {
     if (prefetchedRef.current === roomId) return;
-    if (hasMore && events.length < PREFETCH_THRESHOLD) {
-      prefetchedRef.current = roomId;
-      void loadMore();
-    } else if (!hasMore || events.length >= PREFETCH_THRESHOLD) {
-      prefetchedRef.current = roomId;
-    }
-  }, [roomId, hasMore, events.length, loadMore]);
+    if (!hasMore) return;
+    prefetchedRef.current = roomId;
+    void loadMore();
+  }, [roomId, hasMore, loadMore]);
 
   return (
     <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto">
