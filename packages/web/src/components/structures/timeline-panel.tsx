@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useTimeline } from "../../hooks/use-timeline";
 import { useLoadMoreHistory } from "../../hooks/use-load-more-history";
 import { LoadMoreButton } from "../timeline/load-more-button";
+import { RoomBanner } from "./room-banner";
 import { MessagePanel } from "./message-panel";
 
 const PREFETCH_THRESHOLD = 5;
@@ -48,7 +49,8 @@ export function TimelinePanel({
 
   return (
     <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-y-auto">
-      {events.length > 0 && (
+      {!hasMore && <RoomBanner roomId={roomId} emptyRoom={events.length === 0} />}
+      {events.length > 0 && hasMore && (
         <LoadMoreButton loading={loading} hasMore={hasMore} onClick={loadMore} />
       )}
       <MessagePanel
