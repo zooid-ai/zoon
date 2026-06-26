@@ -207,6 +207,67 @@ export const WithBashMarkdownOutput: Story = {
   },
 };
 
+function seedLongCommandRoom() {
+  const client = makeFakeClient({ userId: ME });
+  const room = makeRoom(ROOM_ID, { client, myUserId: ME });
+  (client as unknown as { getRoom: (id: string) => unknown }).getRoom = (id: string) =>
+    id === ROOM_ID ? room : null;
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: ME,
+      type: "m.room.message",
+      content: { msgtype: "m.text", body: "commit the changes" },
+    }),
+  );
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: AGENT,
+      type: "dev.zooid.tool_call",
+      content: {
+        session_id: "s1",
+        tool_call_id: "tc4",
+        title: "Terminal",
+        kind: "execute",
+        raw_input: {
+          command: "git -C /Users/ori/Code/z/zooid-clients add packages/web/src/components/timeline/approval-card-view.tsx packages/web/src/components/timeline/formatted-message-body.tsx packages/web/src/components/structures/timeline-panel.diff.stories.tsx",
+          description: "Stage changed files",
+        },
+      },
+    }),
+  );
+
+  pushTimelineEvent(
+    room,
+    mkMatrixEvent({
+      roomId: ROOM_ID,
+      sender: AGENT,
+      type: "dev.zooid.tool_call_update",
+      content: {
+        session_id: "s1",
+        tool_call_id: "tc4",
+        status: "completed",
+        content: [{ type: "content", content: { type: "text", text: "" } }],
+      },
+    }),
+  );
+
+  MatrixClientPeg.injectClientForTest(client);
+}
+
+export const WithLongCommand: Story = {
+  args: { roomId: ROOM_ID },
+  render: () => {
+    seedLongCommandRoom();
+    return <TimelinePanel roomId={ROOM_ID} />;
+  },
+};
+
 function seedLongCodeBlockRoom() {
   const client = makeFakeClient({ userId: ME });
   const room = makeRoom(ROOM_ID, { client, myUserId: ME });
